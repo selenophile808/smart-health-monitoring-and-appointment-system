@@ -1,0 +1,598 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Doctor Dashboard - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Top Welcome Bar -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">Welcome, Dr. {{ doctor.user.get_full_name_or_username }}! 🩺</h3>
+      <p class="text-muted small mb-0">{{ doctor.specialization }} &bull; {{ doctor.hospital_or_clinic }} &bull; Slot: {{ doctor.slot_duration_minutes }}m</p>
+      <div class="d-flex align-items-center gap-2 mt-2">
+        <span class="small fw-semibold text-muted">Your status:</span>
+        <span class="badge bg-{{ doctor.get_status_badge_class }}">{{ doctor.get_current_status_display }}</span>
+        <form action="{% url 'doctor_update_status' %}" method="post" class="d-inline">
+          {% csrf_token %}
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="submit" name="status" value="available" class="btn btn-outline-success {% if doctor.current_status == 'available' %}active{% endif %}">Available</button>
+            <button type="submit" name="status" value="busy" class="btn btn-outline-warning {% if doctor.current_status == 'busy' %}active{% endif %}">Busy</button>
+            <button type="submit" name="status" value="offline" class="btn btn-outline-secondary {% if doctor.current_status == 'offline' %}active{% endif %}">Offline</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'doctor_appointment_requests' %}" class="btn btn-primary-teal btn-sm position-relative">
+        <i class="bi bi-inbox me-1"></i> Pending Requests
+        {% if pending_requests_count > 0 %}
+          <span class="badge rounded-pill bg-danger ms-1">{{ pending_requests_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'doctor_today_appointments' %}" class="btn btn-secondary-blue btn-sm">
+        <i class="bi bi-calendar-check me-1"></i> Today's Schedule ({{ today_count }})
+      </a>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-teal">
+          <i class="bi bi-people"></i>
+        </div>
+        <div>
+          <span class="text-muted small fw-semibold">Clinic Patients</span>
+          <h4 class="fw-bold mb-0 text-dark">{{ total_registered_patients }} <small class="text-muted fs-6 fw-normal">({{ total_patients_count }} under care)</small></h4>
+          <small class="text-teal" style="color: var(--primary-teal); font-size: 0.75rem;">Registered in network</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-warning">
+          <i class="bi bi-inbox"></i>
+        </div>
+        <div>
+          <span class="text-muted small fw-semibold">Pending Requests</span>
+          <h4 class="fw-bold mb-0 text-dark">{{ pending_requests_count }}</h4>
+          <small class="text-warning" style="font-size: 0.75rem;">Needs confirmation</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <i class="bi bi-calendar-day"></i>
+        </div>
+        <div>
+          <span class="text-muted small fw-semibold">Today's Visits</span>
+          <h4 class="fw-bold mb-0 text-dark">{{ today_count }}</h4>
+          <small class="text-primary" style="font-size: 0.75rem;">Scheduled for today</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-success">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+        <div>
+          <span class="text-muted small fw-semibold">Completed Consults</span>
+          <h4 class="fw-bold mb-0 text-dark">{{ completed_count }}</h4>
+          <small class="text-success" style="font-size: 0.75rem;">Total fulfilled</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Appointment Requests Section -->
+  {% if pending_requests_count > 0 %}
+  <div class="card card-custom p-4 shadow-sm mb-4 border-start border-4 border-warning">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6">
+          <i class="bi bi-inbox me-1"></i> {{ pending_requests_count }} Pending Booking Request{{ pending_requests_count|pluralize }}
+        </span>
+        <span class="text-muted small">Immediate clinical review required</span>
+      </div>
+      <a href="{% url 'doctor_appointment_requests' %}" class="btn btn-outline-warning btn-sm text-dark fw-semibold">
+        Review All Requests ({{ pending_requests_count }}) &rarr;
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Request ID</th>
+            <th>Patient Details</th>
+            <th>Requested Date & Slot</th>
+            <th>Reason / Symptoms</th>
+            <th>Triage Urgency</th>
+            <th>Status</th>
+            <th class="text-end pe-3">Action Buttons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for apt in pending_requests|slice:":6" %}
+          <tr>
+            <td class="ps-3">
+              <span class="font-monospace fw-bold text-teal" style="color: var(--primary-teal);">{{ apt.appointment_id }}</span>
+              <br><small class="text-muted">{{ apt.created_at|timesince }} ago</small>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ apt.patient.get_full_name_or_username }}</div>
+              <small class="text-muted">
+                {{ apt.patient.gender|default:"-"|title }} &bull; {{ apt.patient.phone_number|default:apt.patient.email }}
+              </small>
+            </td>
+            <td>
+              <span class="fw-semibold text-dark">{{ apt.appointment_date|date:"D, M d, Y" }}</span>
+              {% if apt.appointment_date == today %}
+                <span class="badge bg-success text-white ms-1">Today</span>
+              {% endif %}
+              <br><span class="text-primary fw-bold">{{ apt.appointment_time|time:"h:i A" }}</span>
+            </td>
+            <td>
+              <span class="text-dark">{{ apt.reason_for_visit }}</span>
+              {% if apt.notes %}
+                <br><small class="text-muted text-truncate d-inline-block" style="max-width: 180px;">{{ apt.notes }}</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if apt.symptom_assessment %}
+                <span class="badge bg-{{ apt.symptom_assessment.get_urgency_badge_class }}">{{ apt.symptom_assessment.get_urgency_level_display }}</span>
+              {% else %}
+                <span class="badge bg-light text-secondary border">Direct Booking</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-warning text-dark">Pending</span>
+            </td>
+            <td class="text-end pe-3">
+              <div class="d-flex justify-content-end gap-1">
+                <!-- Approve Button -->
+                <form action="{% url 'doctor_appointment_action' apt.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="accept">
+                  <button type="submit" class="btn btn-sm btn-success fw-semibold px-2" title="Approve for requested slot">
+                    <i class="bi bi-check-circle me-1"></i> Approve
+                  </button>
+                </form>
+
+                <!-- Reschedule Button (Triggers Modal) -->
+                <button type="button" class="btn btn-sm btn-outline-primary fw-semibold px-2" data-bs-toggle="modal" data-bs-target="#reschedModalDash{{ apt.id }}" title="Reschedule Date / Time">
+                  <i class="bi bi-clock-history me-1"></i> Reschedule
+                </button>
+
+                <!-- Reject Button (Triggers Modal) -->
+                <button type="button" class="btn btn-sm btn-outline-danger fw-semibold px-2" data-bs-toggle="modal" data-bs-target="#rejectModalDash{{ apt.id }}" title="Decline Request">
+                  <i class="bi bi-x-circle me-1"></i> Reject
+                </button>
+              </div>
+
+              <!-- Reschedule Modal for this appointment -->
+              <div class="modal fade" id="reschedModalDash{{ apt.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content text-start">
+                    <form action="{% url 'doctor_appointment_action' apt.id %}" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="reschedule">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Reschedule & Confirm Appointment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                          Select a new date and time for <strong>{{ apt.patient.get_full_name_or_username }}</strong>:
+                        </p>
+                        <div class="row g-3 mb-3">
+                          <div class="col-6">
+                            <label class="form-label small fw-semibold">Consultation Date *</label>
+                            <input type="date" name="new_date" class="form-control form-control-sm" value="{{ apt.appointment_date|date:'Y-m-d' }}" min="{{ today|date:'Y-m-d' }}" required>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label small fw-semibold">Consultation Time *</label>
+                            <input type="time" name="new_time" class="form-control form-control-sm" value="{{ apt.appointment_time|time:'H:i' }}" required>
+                          </div>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small fw-semibold">Reason for Rescheduling (Sent to Patient)</label>
+                          <textarea name="reschedule_reason" class="form-control form-control-sm" rows="2" placeholder="e.g. Adjusted to doctor emergency hours or open clinic slot..."></textarea>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Save & Confirm</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reject Modal for this appointment -->
+              <div class="modal fade" id="rejectModalDash{{ apt.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content text-start">
+                    <form action="{% url 'doctor_appointment_action' apt.id %}" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="reject">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Decline Appointment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                          Decline appointment for <strong>{{ apt.patient.get_full_name_or_username }}</strong>?
+                        </p>
+                        <div class="mb-3">
+                          <label class="form-label small fw-semibold">Reason for Decline</label>
+                          <textarea name="rejection_reason" class="form-control form-control-sm" rows="3" placeholder="e.g. Provider unavailable, please select another specialist or date..."></textarea>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-danger">Confirm Decline</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card card-custom p-3 shadow-sm mb-4 border-start border-4 border-success bg-white">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-success px-3 py-2 rounded-pill"><i class="bi bi-check2-circle me-1"></i> All Caught Up</span>
+        <span class="text-dark small fw-medium">No pending appointment requests currently. New patient bookings will appear here immediately.</span>
+      </div>
+      <a href="{% url 'doctor_appointment_requests' %}" class="btn btn-outline-secondary btn-sm">Review History</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Today's Schedule & Patient Alerts Row -->
+  <div class="row g-4 mb-4">
+    <!-- Today's Appointment Schedule & Upcoming Consultations -->
+    <div class="col-lg-8">
+      <div class="card card-custom p-4 shadow-sm h-100">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-0">Clinic Schedule & Consultations</h5>
+            <small class="text-muted">Today is {{ today|date:"l, F d, Y" }}</small>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <ul class="nav nav-pills nav-pills-sm" id="scheduleTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link {% if today_count > 0 or upcoming_count == 0 %}active{% endif %} py-1 px-3 small" id="today-tab" data-bs-toggle="pill" data-bs-target="#today-pane" type="button" role="tab">
+                  Today's Queue ({{ today_count }})
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link {% if today_count == 0 and upcoming_count > 0 %}active{% endif %} py-1 px-3 small" id="upcoming-tab" data-bs-toggle="pill" data-bs-target="#upcoming-pane" type="button" role="tab">
+                  Upcoming ({{ upcoming_count }})
+                </button>
+              </li>
+            </ul>
+            <a href="{% url 'doctor_today_appointments' %}" class="btn btn-outline-teal btn-sm">Full Schedule</a>
+          </div>
+        </div>
+
+        <div class="tab-content" id="scheduleTabContent">
+          <!-- Today's Consultations Pane -->
+          <div class="tab-pane fade {% if today_count > 0 or upcoming_count == 0 %}show active{% endif %}" id="today-pane" role="tabpanel">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                  <tr>
+                    <th class="ps-3">Slot Time</th>
+                    <th>Queue #</th>
+                    <th>Patient Name</th>
+                    <th>Reason for Visit</th>
+                    <th>Status</th>
+                    <th class="text-end pe-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for apt in today_appointments %}
+                  <tr class="{% if apt.status == 'in_progress' %}table-primary-subtle{% endif %}">
+                    <td class="ps-3 text-nowrap">
+                      <span class="fw-bold text-dark">{{ apt.appointment_time|time:"h:i A" }}</span>
+                      <br><small class="text-muted font-monospace">{{ apt.appointment_id }}</small>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border fw-bold fs-6">#{{ forloop.counter }}</span>
+                    </td>
+                    <td>
+                      <div class="fw-bold text-dark">{{ apt.patient.get_full_name_or_username }}</div>
+                      <small class="text-muted">{{ apt.patient.phone_number|default:apt.patient.email }}</small>
+                    </td>
+                    <td>
+                      <span class="small text-secondary text-truncate d-inline-block" style="max-width: 180px;" title="{{ apt.reason_for_visit }}">
+                        {{ apt.reason_for_visit }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge bg-{{ apt.get_status_badge_class }}">{{ apt.get_status_display }}</span>
+                    </td>
+                    <td class="text-end pe-3">
+                      <div class="btn-group btn-group-sm">
+                        {% if apt.status == 'approved' %}
+                          <a href="{% url 'doctor_consultation' apt.id %}" class="btn btn-primary-teal" title="Start Consultation">
+                            <i class="bi bi-stethoscope me-1"></i> Consult
+                          </a>
+                        {% elif apt.status == 'in_progress' %}
+                          <a href="{% url 'doctor_consultation' apt.id %}" class="btn btn-warning fw-semibold" title="Complete Consultation">
+                            <i class="bi bi-pencil-square me-1"></i> In Progress
+                          </a>
+                        {% elif apt.status == 'completed' %}
+                          {% if apt.consultation_record %}
+                            <a href="{% url 'prescription_detail' apt.consultation_record.id %}" class="btn btn-outline-primary" title="View Prescription">
+                              <i class="bi bi-receipt"></i>
+                            </a>
+                          {% endif %}
+                        {% endif %}
+                        <a href="{% url 'doctor_patient_detail' apt.patient.id %}" class="btn btn-light border" title="Patient Medical History">
+                          <i class="bi bi-person-lines-fill"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center py-4 text-muted small">
+                      <i class="bi bi-calendar-check fs-4 d-block mb-1 text-secondary"></i>
+                      No appointments scheduled for today.
+                      {% if upcoming_count > 0 %}
+                        <div class="mt-2">
+                          <span class="text-dark">You have <strong>{{ upcoming_count }}</strong> upcoming approved consultation{{ upcoming_count|pluralize }}.</span>
+                          <button type="button" class="btn btn-outline-teal btn-sm ms-2" onclick="document.getElementById('upcoming-tab').click();">
+                            View Upcoming Schedule &rarr;
+                          </button>
+                        </div>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Upcoming Consultations Pane -->
+          <div class="tab-pane fade {% if today_count == 0 and upcoming_count > 0 %}show active{% endif %}" id="upcoming-pane" role="tabpanel">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-3">Date & Time</th>
+                    <th>Patient Name</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th class="text-end pe-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for apt in upcoming_appointments %}
+                  <tr>
+                    <td class="ps-3 text-nowrap">
+                      <span class="fw-bold text-dark">{{ apt.appointment_date|date:"D, M d, Y" }}</span><br>
+                      <span class="text-primary">{{ apt.appointment_time|time:"h:i A" }}</span>
+                    </td>
+                    <td>
+                      <div class="fw-bold text-dark">{{ apt.patient.get_full_name_or_username }}</div>
+                      <small class="text-muted">{{ apt.patient.phone_number|default:apt.patient.email }}</small>
+                    </td>
+                    <td>
+                      <span class="text-truncate d-inline-block" style="max-width: 180px;">{{ apt.reason_for_visit }}</span>
+                    </td>
+                    <td>
+                      <span class="badge bg-{{ apt.get_status_badge_class }}">{{ apt.get_status_display }}</span>
+                    </td>
+                    <td class="text-end pe-3">
+                      <a href="{% url 'doctor_patient_detail' apt.patient.id %}" class="btn btn-sm btn-outline-teal">
+                        <i class="bi bi-folder2-open me-1"></i> Medical Chart
+                      </a>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="5" class="text-center py-4 text-muted small">
+                      No upcoming approved consultations.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patients Critical Health Alerts -->
+    <div class="col-lg-4">
+      <div class="card card-custom p-4 shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-dark mb-0"><i class="bi bi-bell text-danger me-2"></i>Patient Health Alerts</h5>
+          <span class="badge bg-danger-subtle text-danger small">Vital deviations</span>
+        </div>
+
+        <div class="list-group list-group-flush">
+          {% for alert in patient_alerts %}
+          <div class="list-group-item px-0 py-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-start">
+              <strong class="text-dark small">{{ alert.patient.get_full_name_or_username }}</strong>
+              <span class="badge bg-{{ alert.get_badge_class }}" style="font-size: 0.65rem;">{{ alert.severity|upper }}</span>
+            </div>
+            <div class="small fw-semibold text-danger">{{ alert.title }}</div>
+            <p class="small text-muted mb-1 text-truncate" title="{{ alert.message }}">{{ alert.message }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted" style="font-size: 0.7rem;">{{ alert.created_at|timesince }} ago</small>
+              <a href="{% url 'doctor_patient_detail' alert.patient.id %}" class="btn btn-link btn-sm p-0 text-teal small text-decoration-none" style="font-size: 0.75rem;">View History &rarr;</a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center py-4 text-muted small">
+            <i class="bi bi-check-circle fs-3 text-success d-block mb-1"></i>
+            No active patient alerts. All patient vitals are currently stable.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registered Patients & Telemetry Overview -->
+  <div class="card card-custom p-4 shadow-sm mb-4">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
+      <div>
+        <h5 class="fw-bold text-dark mb-0">Your Patients &amp; Health Telemetry</h5>
+        <small class="text-muted">Clinical records and recent vital readings for patients under your care</small>
+      </div>
+      <a href="{% url 'doctor_patient_list' %}" class="btn btn-outline-teal btn-sm">
+        <i class="bi bi-people me-1"></i> Full Patient Directory ({{ total_registered_patients }})
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Patient Name</th>
+            <th>Gender & Age</th>
+            <th>Blood Group</th>
+            <th>Heart Rate</th>
+            <th>Blood Pressure</th>
+            <th>Blood Glucose</th>
+            <th>SpO2</th>
+            <th>Status</th>
+            <th class="text-end pe-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in recent_patients %}
+          <tr>
+            <td class="ps-3">
+              <div class="d-flex align-items-center gap-2">
+                {% if p.profile_picture %}
+                  <img src="{{ p.profile_picture.url }}" alt="" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                {% else %}
+                <div class="avatar-circle rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; background-color: var(--primary-teal); font-size: 0.8rem;">
+                  {{ p.first_name|first|default:p.username|first|upper }}
+                </div>
+                {% endif %}
+                <div>
+                  <div class="fw-bold text-dark">{{ p.get_full_name_or_username }}</div>
+                  <small class="text-muted">@{{ p.username }}</small>
+                  {% if p.is_my_patient %}
+                    <span class="badge bg-success-subtle text-success border ms-1" style="font-size: 0.65rem;">My Patient</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="text-capitalize">{{ p.gender|default:"-" }}</span>
+              {% if p.date_of_birth %}
+                <br><small class="text-muted">{{ p.date_of_birth|date:"M d, Y" }}</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.blood_group %}
+                <span class="badge bg-light text-danger border fw-bold">{{ p.blood_group }}</span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.latest_vital and p.latest_vital.heart_rate %}
+                <span class="fw-bold {% if p.latest_vital.heart_rate < 60 or p.latest_vital.heart_rate > 100 %}text-danger{% else %}text-dark{% endif %}">
+                  {{ p.latest_vital.heart_rate }} <small class="text-muted fw-normal">bpm</small>
+                </span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.latest_vital and p.latest_vital.systolic_bp and p.latest_vital.diastolic_bp %}
+                <span class="fw-bold {% if p.latest_vital.systolic_bp >= 135 or p.latest_vital.diastolic_bp >= 88 %}text-warning{% else %}text-dark{% endif %}">
+                  {{ p.latest_vital.systolic_bp }}/{{ p.latest_vital.diastolic_bp }} <small class="text-muted fw-normal">mmHg</small>
+                </span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.latest_vital and p.latest_vital.blood_sugar %}
+                <span>{{ p.latest_vital.blood_sugar }} <small class="text-muted">mg/dL</small></span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.latest_vital and p.latest_vital.oxygen_saturation %}
+                <span class="badge {% if p.latest_vital.oxygen_saturation < 95 %}bg-danger{% else %}bg-success{% endif %}">
+                  {{ p.latest_vital.oxygen_saturation }}%
+                </span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.active_alerts_count > 0 %}
+                <span class="badge bg-danger">{{ p.active_alerts_count }} Alert{{ p.active_alerts_count|pluralize }}</span>
+              {% elif p.latest_vital %}
+                <span class="badge bg-light text-success border">Monitored</span>
+              {% else %}
+                <span class="badge bg-light text-muted border">No logs</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <a href="{% url 'doctor_patient_detail' p.id %}" class="btn btn-outline-teal btn-sm" title="View Medical History & Chart">
+                <i class="bi bi-folder2-open me-1"></i> Medical Chart
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center py-4 text-muted">
+              No patients under your care yet -- once someone books or requests an appointment with you, they'll appear here.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Quick Actions Footer Bar -->
+  <div class="card card-custom p-3 shadow-sm bg-white">
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+      <span class="fw-bold small text-muted text-uppercase">Clinic Quick Actions:</span>
+      <div class="d-flex gap-2">
+        <a href="{% url 'doctor_appointment_requests' %}" class="btn btn-outline-teal btn-sm">
+          <i class="bi bi-inbox me-1"></i> Review Booking Requests ({{ pending_requests_count }})
+        </a>
+        <a href="{% url 'doctor_patient_list' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-people me-1"></i> Patient Directory
+        </a>
+        <a href="{% url 'profile' %}" class="btn btn-light border btn-sm">
+          <i class="bi bi-clock me-1"></i> Adjust Weekly Hours & Fee
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

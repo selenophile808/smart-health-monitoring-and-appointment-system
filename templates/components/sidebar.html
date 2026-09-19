@@ -1,0 +1,129 @@
+{% if user.is_authenticated %}
+<aside class="sidebar-wrapper">
+  <div class="d-flex flex-column h-100">
+    {% if user.is_patient %}
+      <!-- PATIENT SIDEBAR -->
+      <div class="sidebar-heading">Health & Monitoring</div>
+      <nav class="nav flex-column sidebar-nav mb-3">
+        <a class="nav-link {% if request.resolver_match.url_name == 'patient_dashboard' %}active{% endif %}" href="{% url 'patient_dashboard' %}">
+          <i class="bi bi-grid-1x2"></i> Patient Dashboard
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_entry' %}active{% endif %}" href="{% url 'health_entry' %}">
+          <i class="bi bi-plus-circle"></i> Log Health Vitals
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_history' %}active{% endif %}" href="{% url 'health_history' %}">
+          <i class="bi bi-clock-history"></i> Health History
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_trends' %}active{% endif %}" href="{% url 'health_trends' %}">
+          <i class="bi bi-graph-up"></i> Health Trend Analysis
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_alerts' %}active{% endif %}" href="{% url 'health_alerts' %}">
+          <i class="bi bi-shield-exclamation text-danger"></i> Health Alerts
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_summary' %}active{% endif %}" href="{% url 'health_summary' %}">
+          <i class="bi bi-file-earmark-person text-teal" style="color: var(--primary-teal);"></i> Health Summary Card
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_timeline' %}active{% endif %}" href="{% url 'health_timeline' %}">
+          <i class="bi bi-clock-history text-teal" style="color: var(--primary-teal);"></i> Health Timeline
+        </a>
+      </nav>
+
+      <div class="sidebar-heading">AI Health Services</div>
+      <nav class="nav flex-column sidebar-nav mb-3">
+        <a class="nav-link {% if request.resolver_match.url_name == 'health_risk_score' %}active{% endif %}" href="{% url 'health_risk_score' %}">
+          <i class="bi bi-shield-fill-check text-primary"></i> AI Health Risk Score
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'symptom_assessment' or request.resolver_match.url_name == 'assessment_result' %}active{% endif %}" href="{% url 'symptom_assessment' %}">
+          <i class="bi bi-stars text-primary"></i> AI Symptom Assessment
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_recommendations' %}active{% endif %}" href="{% url 'doctor_recommendations' %}">
+          <i class="bi bi-award"></i> Doctor Recommendations
+        </a>
+      </nav>
+
+      <div class="sidebar-heading">Appointments & Records</div>
+      <nav class="nav flex-column sidebar-nav mb-3">
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_list' %}active{% endif %}" href="{% url 'doctor_list' %}">
+          <i class="bi bi-search"></i> Search Doctors
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'book_appointment' %}active{% endif %}" href="{% url 'book_appointment' %}">
+          <i class="bi bi-calendar-plus"></i> Book Appointment
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'my_appointments' %}active{% endif %}" href="{% url 'my_appointments' %}">
+          <i class="bi bi-calendar-check"></i> My Appointments
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'medical_records' or request.resolver_match.url_name == 'prescription_detail' %}active{% endif %}" href="{% url 'medical_records' %}">
+          <i class="bi bi-file-earmark-medical"></i> Medical Records
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'notifications_list' %}active{% endif %}" href="{% url 'notifications_list' %}">
+          <i class="bi bi-bell"></i> Notifications
+        </a>
+      </nav>
+
+    {% elif user.is_doctor %}
+      <!-- DOCTOR SIDEBAR -->
+      <div class="sidebar-heading">Clinical Management</div>
+      <nav class="nav flex-column sidebar-nav mb-3">
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_dashboard' %}active{% endif %}" href="{% url 'doctor_dashboard' %}">
+          <i class="bi bi-speedometer2"></i> Doctor Dashboard
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_appointment_requests' %}active{% endif %}" href="{% url 'doctor_appointment_requests' %}">
+          <i class="bi bi-inbox"></i> Appointment Requests
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_today_appointments' %}active{% endif %}" href="{% url 'doctor_today_appointments' %}">
+          <i class="bi bi-calendar-day"></i> Today's Schedule
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_patient_list' and request.GET.filter != 'my' %}active{% endif %}" href="{% url 'doctor_patient_list' %}?filter=all">
+          <i class="bi bi-people"></i> All Patients
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'doctor_patient_list' and request.GET.filter == 'my' %}active{% endif %}" href="{% url 'doctor_patient_list' %}?filter=my">
+          <i class="bi bi-person-check"></i> My Patients
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'notifications_list' %}active{% endif %}" href="{% url 'notifications_list' %}">
+          <i class="bi bi-bell"></i> Notifications
+        </a>
+        <a class="nav-link text-danger {% if request.resolver_match.url_name == 'emergency_alerts' %}active{% endif %}" href="{% url 'emergency_alerts' %}">
+          <i class="bi bi-exclamation-triangle-fill"></i> Emergency Alerts
+        </a>
+      </nav>
+
+    {% elif user.is_administrator %}
+      <!-- ADMIN SIDEBAR -->
+      <div class="sidebar-heading">System Administration</div>
+      <nav class="nav flex-column sidebar-nav mb-3">
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" href="{% url 'admin_dashboard' %}">
+          <i class="bi bi-bar-chart"></i> Admin Dashboard
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_patient_management' %}active{% endif %}" href="{% url 'admin_patient_management' %}">
+          <i class="bi bi-people-fill"></i> Patient Management
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_doctor_management' %}active{% endif %}" href="{% url 'admin_doctor_management' %}">
+          <i class="bi bi-person-badge-fill"></i> Doctor Management
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_appointment_management' %}active{% endif %}" href="{% url 'admin_appointment_management' %}">
+          <i class="bi bi-calendar2-range"></i> Appointment Management
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_health_record_management' %}active{% endif %}" href="{% url 'admin_health_record_management' %}">
+          <i class="bi bi-activity"></i> Health Records
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}" href="{% url 'admin_reports' %}">
+          <i class="bi bi-pie-chart"></i> Analytics & Reports
+        </a>
+        <a class="nav-link text-danger {% if request.resolver_match.url_name == 'emergency_alerts' %}active{% endif %}" href="{% url 'emergency_alerts' %}">
+          <i class="bi bi-exclamation-triangle-fill"></i> Emergency Alerts
+        </a>
+        <a class="nav-link" href="/django-admin/" target="_blank">
+          <i class="bi bi-shield-lock"></i> Django Admin Site
+        </a>
+      </nav>
+    {% endif %}
+
+    <div class="mt-auto pt-3 border-top">
+      <a class="nav-link sidebar-nav text-muted d-flex align-items-center gap-2 p-2 rounded" href="{% url 'profile' %}">
+        <i class="bi bi-gear fs-5"></i>
+        <span>Account Settings</span>
+      </a>
+    </div>
+  </div>
+</aside>
+{% endif %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Notifications & Activity Alerts</h3>
+      <p class="text-muted small mb-0">Track system notices, appointment confirmations, queue updates, and health alerts</p>
+    </div>
+    {% if unread_notifications_count > 0 %}
+    <form action="{% url 'mark_all_notifications_read' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-teal btn-sm">
+        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="list-group list-group-flush">
+      {% for notif in notifications %}
+      <div class="list-group-item p-3 d-flex justify-content-between align-items-center {% if not notif.is_read %}bg-light border-start border-4 border-primary{% endif %}">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 rounded-circle 
+            {% if notif.notification_type == 'health_alert' %}bg-danger text-white
+            {% elif notif.notification_type == 'appointment' %}bg-primary text-white
+            {% elif notif.notification_type == 'queue' %}bg-warning text-dark
+            {% else %}bg-secondary text-white{% endif %}">
+            <i class="bi 
+              {% if notif.notification_type == 'health_alert' %}bi-shield-exclamation
+              {% elif notif.notification_type == 'appointment' %}bi-calendar-check
+              {% elif notif.notification_type == 'queue' %}bi-hourglass-split
+              {% else %}bi-bell{% endif %} fs-5"></i>
+          </div>
+          <div>
+            <h6 class="mb-1 fw-bold {% if not notif.is_read %}text-dark{% else %}text-muted{% endif %}">
+              {{ notif.title }}
+            </h6>
+            <p class="mb-1 small text-secondary">{{ notif.message }}</p>
+            <small class="text-muted" style="font-size: 0.75rem;">
+              <i class="bi bi-clock me-1"></i>{{ notif.created_at|timesince }} ago
+            </small>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          {% if notif.link_url %}
+            <a href="{{ notif.link_url }}" class="btn btn-sm btn-outline-primary">View</a>
+          {% endif %}
+          {% if not notif.is_read %}
+            <form action="{% url 'mark_notification_read' notif.id %}" method="post" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-light border" title="Mark as read">
+                <i class="bi bi-check2"></i>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-bell-slash fs-1 text-secondary mb-2 d-block"></i>
+        <h5 class="fw-bold">No notifications yet</h5>
+        <p class="small">You will be alerted here when appointment statuses change or health alerts trigger.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

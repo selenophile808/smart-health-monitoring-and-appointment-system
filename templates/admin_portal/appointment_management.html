@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Appointment Management - Admin Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Appointment Management</h3>
+      <p class="text-muted small mb-0">System-wide registry of all scheduled, pending, and completed clinic appointments</p>
+    </div>
+    <span class="badge bg-primary px-3 py-2 rounded-pill fs-6">{{ appointments.count }} Total Appointment{{ appointments.count|pluralize }}</span>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="mb-4">
+    <div class="btn-group shadow-sm bg-white" role="group">
+      <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">All</a>
+      <a href="?status=pending" class="btn btn-sm {% if status_filter == 'pending' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">Pending</a>
+      <a href="?status=approved" class="btn btn-sm {% if status_filter == 'approved' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">Approved</a>
+      <a href="?status=in_progress" class="btn btn-sm {% if status_filter == 'in_progress' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">In Progress</a>
+      <a href="?status=completed" class="btn btn-sm {% if status_filter == 'completed' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">Completed</a>
+      <a href="?status=cancelled" class="btn btn-sm {% if status_filter == 'cancelled' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">Cancelled</a>
+      <a href="?status=rejected" class="btn btn-sm {% if status_filter == 'rejected' %}btn-primary-teal{% else %}btn-outline-secondary{% endif %}">Rejected</a>
+    </div>
+  </div>
+
+  <!-- Appointments Table -->
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Appointment ID</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Specialization</th>
+            <th>Date & Time</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for apt in appointments %}
+          <tr>
+            <td class="ps-4 font-monospace fw-bold text-teal" style="color: var(--primary-teal);">
+              {{ apt.appointment_id }}
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ apt.patient.get_full_name_or_username }}</div>
+              <small class="text-muted">{{ apt.patient.email }}</small>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">Dr. {{ apt.doctor.user.get_full_name_or_username }}</div>
+              <small class="text-muted">{{ apt.doctor.hospital_or_clinic }}</small>
+            </td>
+            <td>
+              <span class="badge badge-teal">{{ apt.doctor.specialization }}</span>
+            </td>
+            <td>
+              <span class="fw-semibold text-dark">{{ apt.appointment_date|date:"M d, Y" }}</span>
+              <br><span class="text-primary">{{ apt.appointment_time|time:"h:i A" }}</span>
+            </td>
+            <td>
+              <span class="badge bg-{{ apt.get_status_badge_class }}">{{ apt.get_status_display }}</span>
+            </td>
+            <td class="text-end pe-4">
+              <a href="{% url 'queue_status' apt.id %}" class="btn btn-sm btn-outline-teal" title="View Live Queue">
+                <i class="bi bi-hourglass-split"></i> Queue
+              </a>
+              {% if apt.consultation_record %}
+                <a href="{% url 'prescription_detail' apt.consultation_record.id %}" class="btn btn-sm btn-outline-primary" title="View Prescription">
+                  <i class="bi bi-receipt"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">No appointments found matching this status filter.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

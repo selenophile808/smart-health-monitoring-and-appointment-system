@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Health Timeline - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-clock-history text-teal me-2" style="color: var(--primary-teal);"></i>Health Timeline</h3>
+      <p class="text-muted small mb-4">Your complete health journey -- vitals, AI assessments, appointments, and consultations, in one chronological view.</p>
+
+      <div class="position-relative ps-4" style="border-left: 3px solid #E2E8F0;">
+        {% for event in events %}
+        <div class="mb-4 position-relative">
+          <span class="position-absolute rounded-circle bg-{{ event.color }} d-flex align-items-center justify-content-center"
+                style="width: 32px; height: 32px; left: -33px; top: 0; color: #fff;">
+            <i class="bi {{ event.icon }}"></i>
+          </span>
+          <div class="card card-custom p-3 shadow-sm ms-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <h6 class="fw-bold text-dark mb-1">
+                {% if event.link %}<a href="{{ event.link }}" class="text-dark text-decoration-none">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}
+              </h6>
+              <small class="text-muted text-nowrap ms-2">{{ event.timestamp|date:"M d, Y g:i A" }}</small>
+            </div>
+            <p class="text-secondary small mb-0">{{ event.detail }}</p>
+          </div>
+        </div>
+        {% empty %}
+        <div class="card card-custom p-5 text-center shadow-sm">
+          <i class="bi bi-clock-history fs-1 text-secondary d-block mb-2"></i>
+          <h5 class="fw-bold text-dark">No history yet</h5>
+          <p class="text-muted small mb-0">Log your vitals or book an appointment to start building your health timeline.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

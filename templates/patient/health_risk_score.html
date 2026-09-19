@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Health Risk Score - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-7 mx-auto">
+      <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-stars text-primary me-2"></i>AI Health Risk Score</h3>
+      <p class="text-muted small mb-4">Based on your most recently logged vitals.</p>
+
+      {% if not record %}
+        <div class="card card-custom p-5 text-center shadow-sm">
+          <i class="bi bi-clipboard2-pulse fs-1 text-secondary d-block mb-2"></i>
+          <h5 class="fw-bold text-dark">No health data yet</h5>
+          <p class="text-muted small mb-3">Log your vitals first so we can calculate your risk score.</p>
+          <a href="{% url 'health_entry' %}" class="btn btn-primary-teal">Log Health Vitals</a>
+        </div>
+      {% else %}
+        <div class="card card-custom p-4 p-md-5 shadow-sm mb-3 text-center">
+          <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center
+                      {% if result.risk_level == 'low' %}bg-success-subtle{% elif result.risk_level == 'moderate' %}bg-warning-subtle{% else %}bg-danger-subtle{% endif %}"
+               style="width: 140px; height: 140px;">
+            <div>
+              <div class="fw-bold" style="font-size: 2.2rem;">{{ result.score }}</div>
+              <div class="small text-muted">/ 100</div>
+            </div>
+          </div>
+          <span class="badge fs-6 px-3 py-2 mb-2
+                       {% if result.risk_level == 'low' %}bg-success{% elif result.risk_level == 'moderate' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+            {% if result.risk_level == 'low' %}🟢 Low Risk{% elif result.risk_level == 'moderate' %}🟡 Moderate Risk{% else %}🔴 High Risk{% endif %}
+          </span>
+          <p class="text-secondary small mb-0">Based on data logged {{ record.recorded_at|timesince }} ago</p>
+        </div>
+
+        <div class="card card-custom p-4 shadow-sm mb-3">
+          <h6 class="fw-bold text-dark mb-2">What this means</h6>
+          <p class="text-secondary small mb-0">{{ result.explanation }}</p>
+        </div>
+
+        {% if result.flags %}
+        <div class="card card-custom p-4 shadow-sm mb-3">
+          <h6 class="fw-bold text-dark mb-2">Findings</h6>
+          <ul class="small text-secondary mb-0">
+            {% for flag in result.flags %}<li>{{ flag }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-warning small">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>This result is for informational purposes only and is not a medical diagnosis.</strong>
+          Please consult a qualified healthcare professional for any health concerns.
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'health_entry' %}" class="btn btn-outline-teal">Log New Vitals</a>
+          <a href="{% url 'doctor_recommendations' %}" class="btn btn-primary-teal">Find a Doctor</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Doctor Recommendations - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold mb-1">Smart Doctor Recommendations</h3>
+      <p class="text-muted small mb-0">Browse accredited physicians matched by specialty, hospital affiliation, and consultation schedule</p>
+    </div>
+    {% if latest_assessment %}
+      <a href="{% url 'assessment_result' latest_assessment.id %}" class="btn btn-outline-teal btn-sm">
+        <i class="bi bi-stars me-1"></i> Latest AI Triage ({{ latest_assessment.recommended_specialization }})
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="card card-custom p-3 mb-4 shadow-sm">
+    <form method="get" class="row g-3 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by doctor name or clinic/hospital...">
+        </div>
+      </div>
+      <div class="col-md-5">
+        <select name="specialization" class="form-select">
+          <option value="">All Specializations ({{ specializations|length }})</option>
+          {% for spec_key, spec_name in specializations %}
+            <option value="{{ spec_key }}" {% if selected_specialization == spec_key %}selected{% endif %}>{{ spec_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary-teal w-100">Filter</button>
+        {% if query or selected_specialization %}
+          <a href="{% url 'doctor_recommendations' %}" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Doctors List -->
+  <div class="row g-4">
+    {% for doc in doctors %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-custom p-4 h-100 shadow-sm d-flex flex-column">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          {% if doc.user.profile_picture %}
+            <img src="{{ doc.user.profile_picture.url }}" alt="" class="rounded-circle" style="width: 52px; height: 52px; object-fit: cover;">
+          {% else %}
+          <div class="avatar-circle text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 52px; height: 52px; background: linear-gradient(135deg, var(--primary-teal), var(--secondary-blue));">
+            {{ doc.user.first_name|first|default:doc.user.username|first|upper }}
+          </div>
+          {% endif %}
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">Dr. {{ doc.user.get_full_name_or_username }}</h5>
+            <span class="badge badge-teal">{{ doc.specialization }}</span>
+          </div>
+        </div>
+
+        <p class="small text-muted mb-2">
+          <i class="bi bi-award text-primary me-1"></i><strong>{{ doc.qualification }}</strong> &bull; {{ doc.experience_years }} yrs experience
+        </p>
+        <p class="small text-muted mb-3">
+          <i class="bi bi-hospital text-primary me-1"></i>{{ doc.hospital_or_clinic }}
+        </p>
+
+        {% if doc.bio %}
+          <p class="small text-secondary mb-3 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            {{ doc.bio }}
+          </p>
+        {% endif %}
+
+        <div class="p-2 bg-light rounded border mb-3 small text-muted">
+          <div><i class="bi bi-calendar-check me-1"></i><strong>Days:</strong> {{ doc.available_days }}</div>
+          <div><i class="bi bi-clock me-1"></i><strong>Hours:</strong> {{ doc.start_time|time:"g:i A" }} – {{ doc.end_time|time:"g:i A" }} ({{ doc.slot_duration_minutes }}m slots)</div>
+        </div>
+
+        <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted d-block" style="font-size: 0.75rem;">Fee</small>
+            <span class="fw-bold fs-5 text-dark">${{ doc.consultation_fee }}</span>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{% url 'doctor_profile' doc.id %}" class="btn btn-outline-secondary btn-sm">Profile</a>
+            <a href="{% url 'book_appointment' %}?doctor_id={{ doc.id }}" class="btn btn-primary-teal btn-sm">
+              <i class="bi bi-calendar-plus me-1"></i> Book
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted card card-custom shadow-sm">
+      <i class="bi bi-person-x fs-1 mb-2 text-secondary"></i>
+      <h5 class="fw-bold text-dark">No Doctors Found</h5>
+      <p class="small">Try adjusting your specialization filter or search query.</p>
+      <a href="{% url 'doctor_recommendations' %}" class="btn btn-outline-teal btn-sm mx-auto">Reset Filters</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

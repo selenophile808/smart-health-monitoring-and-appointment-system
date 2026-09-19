@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Emergency Alerts - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Emergency SOS Alerts</h3>
+  <p class="text-muted small mb-4">Patient-triggered emergency alerts. This is a project/demo feature -- always advise patients to also call real local emergency services for genuine emergencies.</p>
+
+  <div class="alert alert-warning border-0 shadow-sm small">
+    <i class="bi bi-info-circle me-1"></i> This system is a college project and is <strong>not a replacement</strong> for real emergency medical services.
+  </div>
+
+  <div class="card card-custom shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Patient</th>
+            <th>Message</th>
+            <th>Triggered</th>
+            <th>Status</th>
+            <th>Resolved By</th>
+            <th class="text-end pe-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for alert in alerts %}
+          <tr class="{% if alert.status == 'active' %}table-danger-subtle{% endif %}">
+            <td class="ps-3 fw-bold text-dark">{{ alert.patient.get_full_name_or_username }}</td>
+            <td class="small text-secondary">{{ alert.message|default:"No additional message provided." }}</td>
+            <td class="small text-muted">{{ alert.created_at|timesince }} ago</td>
+            <td><span class="badge bg-{{ alert.get_status_badge_class }}">{{ alert.get_status_display }}</span></td>
+            <td class="small text-muted">{{ alert.resolved_by.get_full_name_or_username|default:"-" }}</td>
+            <td class="text-end pe-3">
+              {% if alert.status == 'active' %}
+                <form action="{% url 'resolve_sos' alert.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-1"></i>Mark Resolved</button>
+                </form>
+              {% else %}
+                <span class="text-muted small">Resolved {{ alert.resolved_at|timesince }} ago</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+              No emergency alerts have been triggered.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

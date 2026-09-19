@@ -1,0 +1,171 @@
+<nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+  <div class="container-fluid px-lg-4">
+    <a class="navbar-brand navbar-brand-brand" href="{% url 'home' %}">
+      <span class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
+      <span>SmartHealth</span>
+    </a>
+
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarMain">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active fw-semibold{% endif %}" href="{% url 'home' %}">
+            <i class="bi bi-house-door me-1"></i> Home
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'doctor_list' %}active fw-semibold{% endif %}" href="{% url 'doctor_list' %}">
+            <i class="bi bi-person-badge me-1"></i> Doctors Directory
+          </a>
+        </li>
+        {% if user.is_authenticated and user.is_patient %}
+        <li class="nav-item">
+          <a class="nav-link text-teal fw-semibold" href="{% url 'symptom_assessment' %}" style="color: var(--primary-teal);">
+            <i class="bi bi-stars me-1 text-primary"></i> AI Health Triage
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+
+      <div class="d-flex align-items-center gap-3">
+        {% if user.is_authenticated %}
+          <!-- Dark Mode Toggle -->
+          <button type="button" id="shmasThemeToggle" class="btn btn-light rounded-circle p-2" title="Toggle dark mode" aria-label="Toggle dark mode">
+            <i class="bi bi-moon-stars" id="shmasThemeIcon"></i>
+          </button>
+
+          <!-- Notifications Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-light position-relative rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+              <i class="bi bi-bell fs-5 text-secondary"></i>
+              {% if unread_notifications_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  {{ unread_notifications_count }}
+                </span>
+              {% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm p-2" style="min-width: 300px; max-width: 360px;">
+              <li class="d-flex justify-content-between align-items-center px-2 py-1 border-bottom">
+                <span class="fw-bold small text-muted">Notifications</span>
+                {% if unread_notifications_count > 0 %}
+                  <form action="{% url 'mark_all_notifications_read' %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link btn-sm text-decoration-none p-0 text-teal small">Mark all read</button>
+                  </form>
+                {% endif %}
+              </li>
+              {% if recent_notifications %}
+                {% for notif in recent_notifications %}
+                  <li class="p-2 border-bottom small {% if not notif.is_read %}bg-light rounded{% endif %}">
+                    <a href="{% if notif.link_url %}{{ notif.link_url }}{% else %}{% url 'notifications_list' %}{% endif %}" class="text-decoration-none text-dark d-block">
+                      <div class="fw-semibold">{{ notif.title }}</div>
+                      <div class="text-muted text-truncate">{{ notif.message }}</div>
+                      <div class="text-muted" style="font-size: 0.75rem;">{{ notif.created_at|timesince }} ago</div>
+                    </a>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <li class="text-center text-muted py-3 small">No notifications</li>
+              {% endif %}
+              <li class="text-center pt-2">
+                <a href="{% url 'notifications_list' %}" class="small text-decoration-none text-teal fw-semibold">View all notifications</a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- User Profile Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-outline-light text-dark d-flex align-items-center gap-2 border py-1 px-2 rounded-pill" type="button" data-bs-toggle="dropdown">
+              {% if user.profile_picture %}
+                <img src="{{ user.profile_picture.url }}" alt="" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+              {% else %}
+                <span class="avatar-circle bg-teal text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; background-color: var(--primary-teal);">
+                  {{ user.first_name|first|default:user.username|first|upper }}
+                </span>
+              {% endif %}
+              <div class="text-start d-none d-md-block" style="line-height: 1.1;">
+                <div class="fw-semibold small">{{ user.get_full_name_or_username }}</div>
+                <small class="text-muted text-capitalize" style="font-size: 0.75rem;">{{ user.role }}</small>
+              </div>
+              <i class="bi bi-chevron-down text-muted small"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li>
+                <a class="dropdown-item" href="{% url 'dashboard_redirect' %}">
+                  <i class="bi bi-grid-1x2 me-2 text-primary"></i> Dashboard
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'profile' %}">
+                  <i class="bi bi-person me-2 text-secondary"></i> My Profile
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                  <i class="bi bi-box-arrow-right me-2"></i> Log Out
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        {% else %}
+          <!-- Dark Mode Toggle (guest) -->
+          <button type="button" id="shmasThemeToggleGuest" class="btn btn-light rounded-circle p-2" title="Toggle dark mode" aria-label="Toggle dark mode">
+            <i class="bi bi-moon-stars" id="shmasThemeIconGuest"></i>
+          </button>
+
+          <!-- Guest Navigation: Direct Doctor Login & Sign In Dropdown -->
+          <a href="{% url 'doctor_login' %}" class="btn btn-outline-primary btn-sm d-none d-sm-inline-flex align-items-center">
+            <i class="bi bi-heart-pulse me-1"></i> Doctor Login
+          </a>
+
+          <div class="dropdown">
+            <button class="btn btn-outline-teal btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li>
+                <a class="dropdown-item py-2" href="{% url 'login' %}">
+                  <i class="bi bi-person text-teal me-2" style="color: var(--primary-teal);"></i> Patient Login
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2" href="{% url 'doctor_login' %}">
+                  <i class="bi bi-heart-pulse text-primary me-2"></i> Doctor Login
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item py-2 text-muted" href="{% url 'admin_login' %}">
+                  <i class="bi bi-shield-lock text-dark me-2"></i> Admin Console
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="dropdown">
+            <button class="btn btn-primary-teal btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-plus me-1"></i> Register
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li>
+                <a class="dropdown-item py-2" href="{% url 'patient_register' %}">
+                  <i class="bi bi-heart-pulse text-danger me-2"></i> As a Patient
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2" href="{% url 'doctor_register' %}">
+                  <i class="bi bi-person-badge text-primary me-2"></i> As a Healthcare Provider
+                </a>
+              </li>
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>

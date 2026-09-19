@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Appointment Requests - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Incoming Appointment Requests</h3>
+      <p class="text-muted small mb-0">Confirm or reschedule booking requests submitted by patients</p>
+    </div>
+    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6">
+      {{ requests.count }} Pending Request{{ requests.count|pluralize }}
+    </span>
+  </div>
+
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Request ID</th>
+            <th>Patient Details</th>
+            <th>Requested Slot</th>
+            <th>Reason / Symptoms</th>
+            <th>AI Triage Assessment</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Action Buttons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for apt in requests %}
+          <tr>
+            <td class="ps-4">
+              <span class="font-monospace fw-bold text-teal" style="color: var(--primary-teal);">{{ apt.appointment_id }}</span>
+              <br><small class="text-muted">{{ apt.created_at|timesince }} ago</small>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ apt.patient.get_full_name_or_username }}</div>
+              <small class="text-muted">
+                {{ apt.patient.gender|default:"-"|title }} &bull; Phone: {{ apt.patient.phone_number|default:"-" }}
+              </small>
+            </td>
+            <td>
+              <span class="fw-semibold text-dark">{{ apt.appointment_date|date:"l, M d, Y" }}</span><br>
+              <span class="text-primary fw-bold">{{ apt.appointment_time|time:"h:i A" }}</span>
+            </td>
+            <td>
+              <span class="small text-dark fw-medium">{{ apt.reason_for_visit }}</span>
+              {% if apt.notes %}
+                <br><small class="text-muted text-truncate d-inline-block" style="max-width: 200px;">{{ apt.notes }}</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if apt.symptom_assessment %}
+                <span class="badge bg-{{ apt.symptom_assessment.get_urgency_badge_class }}">{{ apt.symptom_assessment.get_urgency_level_display }}</span>
+                <br><small class="text-muted">{{ apt.symptom_assessment.recommended_specialization }}</small>
+              {% else %}
+                <span class="text-muted small">Direct Booking</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-warning text-dark px-2 py-1">
+                <i class="bi bi-hourglass-split me-1"></i> Pending
+              </span>
+            </td>
+            <td class="text-end pe-4">
+              <div class="d-flex justify-content-end gap-2">
+                <!-- Accept Form -->
+                <form action="{% url 'doctor_appointment_action' apt.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="accept">
+                  <button type="submit" class="btn btn-sm btn-success fw-semibold px-3" title="Approve appointment">
+                    <i class="bi bi-check-circle me-1"></i> APPROVE
+                  </button>
+                </form>
+
+                <!-- Reschedule Button (Modal Trigger) -->
+                <button type="button" class="btn btn-sm btn-outline-primary fw-semibold px-2" data-bs-toggle="modal" data-bs-target="#reschedReqModal{{ apt.id }}" title="Change date/time slot">
+                  <i class="bi bi-clock-history me-1"></i> Reschedule
+                </button>
+
+                <!-- Reject Button (Modal Trigger) -->
+                <button type="button" class="btn btn-sm btn-outline-danger fw-semibold px-3" data-bs-toggle="modal" data-bs-target="#rejectModal{{ apt.id }}" title="Decline request">
+                  <i class="bi bi-x-circle me-1"></i> REJECT
+                </button>
+              </div>
+
+              <!-- Reschedule Modal -->
+              <div class="modal fade" id="reschedReqModal{{ apt.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content text-start">
+                    <form action="{% url 'doctor_appointment_action' apt.id %}" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="reschedule">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Reschedule & Confirm Appointment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                          Select a new consultation date and time slot for <strong>{{ apt.patient.get_full_name_or_username }}</strong>:
+                        </p>
+                        <div class="row g-3 mb-3">
+                          <div class="col-6">
+                            <label class="form-label small fw-semibold">Consultation Date *</label>
+                            <input type="date" name="new_date" class="form-control form-control-sm" value="{{ apt.appointment_date|date:'Y-m-d' }}" min="{{ today|date:'Y-m-d' }}" required>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label small fw-semibold">Consultation Time *</label>
+                            <input type="time" name="new_time" class="form-control form-control-sm" value="{{ apt.appointment_time|time:'H:i' }}" required>
+                          </div>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small fw-semibold">Reason for Rescheduling (Sent to Patient)</label>
+                          <textarea name="reschedule_reason" class="form-control form-control-sm" rows="2" placeholder="e.g. Moved to doctor open slot, emergency shift adjustment..."></textarea>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Save & Confirm</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rejection Reason Modal -->
+              <div class="modal fade" id="rejectModal{{ apt.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content text-start">
+                    <form action="{% url 'doctor_appointment_action' apt.id %}" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="reject">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Decline Appointment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                          Are you sure you want to decline this appointment with <strong>{{ apt.patient.get_full_name_or_username }}</strong> on {{ apt.appointment_date }} at {{ apt.appointment_time|time:"h:i A" }}?
+                        </p>
+                        <div class="mb-3">
+                          <label class="form-label small fw-semibold">Reason for Decline (Sent to Patient)</label>
+                          <textarea name="rejection_reason" class="form-control form-control-sm" rows="3" placeholder="e.g. In emergency surgery, doctor unavailable, please select another time slot..."></textarea>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-danger">Confirm Decline</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+              <h5 class="fw-bold text-dark">No Pending Requests</h5>
+              <p class="small">All appointment bookings have been processed. New patient requests will appear here immediately.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Doctor Management - Admin Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Doctor & Provider Management</h3>
+      <p class="text-muted small mb-0">Review credentials, manage accreditation status, and toggle booking access</p>
+    </div>
+    <span class="badge bg-teal px-3 py-2 rounded-pill fs-6" style="background-color: var(--primary-teal); color: #fff;">
+      {{ doctors.count }} Healthcare Provider{{ doctors.count|pluralize }}
+    </span>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="card card-custom p-3 mb-4 shadow-sm">
+    <form method="get" class="d-flex gap-2">
+      <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by doctor name, specialization, or clinic...">
+      </div>
+      <button type="submit" class="btn btn-primary-teal">Search</button>
+      {% if query %}
+        <a href="{% url 'admin_doctor_management' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Doctors Table -->
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Doctor Name</th>
+            <th>Specialization</th>
+            <th>Hospital / Clinic</th>
+            <th>Qualifications & Exp</th>
+            <th>Fee</th>
+            <th>Approval Status</th>
+            <th>Account Status</th>
+            <th class="text-end pe-4">Admin Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in doctors %}
+          <tr>
+            <td class="ps-4">
+              <div class="fw-bold text-dark">Dr. {{ doc.user.get_full_name_or_username }}</div>
+              <small class="text-muted font-monospace">@{{ doc.user.username }} &bull; {{ doc.user.email }}</small>
+            </td>
+            <td>
+              <span class="badge badge-teal">{{ doc.specialization }}</span>
+            </td>
+            <td>
+              <span class="fw-medium text-dark">{{ doc.hospital_or_clinic }}</span>
+              <br><small class="text-muted">{{ doc.available_days }}</small>
+            </td>
+            <td>
+              <span>{{ doc.qualification }}</span>
+              <br><small class="text-muted">{{ doc.experience_years }} yrs experience</small>
+            </td>
+            <td>
+              <span class="fw-bold text-dark">${{ doc.consultation_fee }}</span>
+              <br><small class="text-muted">{{ doc.slot_duration_minutes }}m slot</small>
+            </td>
+            <td>
+              {% if doc.is_approved_by_admin %}
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Approved</span>
+              {% else %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending Review</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if doc.user.is_active %}
+                <span class="badge bg-success"><i class="bi bi-person-check me-1"></i>Active</span>
+              {% else %}
+                <span class="badge bg-secondary"><i class="bi bi-person-x me-1"></i>Deactivated</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <form action="{% url 'admin_toggle_doctor_approval' doc.id %}" method="post" class="d-inline">
+                {% csrf_token %}
+                {% if doc.is_approved_by_admin %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Revoke Approval">
+                    <i class="bi bi-x-circle me-1"></i> Revoke
+                  </button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-success" title="Approve Doctor">
+                    <i class="bi bi-check-lg me-1"></i> Approve
+                  </button>
+                {% endif %}
+              </form>
+              <form action="{% url 'admin_toggle_doctor_active' doc.id %}" method="post" class="d-inline">
+                {% csrf_token %}
+                {% if doc.user.is_active %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="Deactivate Account">
+                    <i class="bi bi-person-x me-1"></i> Deactivate
+                  </button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-success" title="Activate Account">
+                    <i class="bi bi-person-check me-1"></i> Activate
+                  </button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">No doctors found matching your query.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

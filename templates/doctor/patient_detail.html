@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Patient Chart - {{ patient.get_full_name_or_username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a href="{% url 'doctor_patient_list' %}" class="btn btn-sm btn-light border mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Patient Directory
+      </a>
+      <h3 class="fw-bold mb-1">Clinical Medical Chart: {{ patient.get_full_name_or_username }}</h3>
+      <p class="text-muted small mb-0">Confidential clinical review of patient vitals, telemetry, allergies, and consult notes</p>
+    </div>
+  </div>
+
+  <!-- Patient Summary Card -->
+  <div class="card card-custom p-4 shadow-sm mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <small class="text-muted fw-semibold d-block">Gender / DOB</small>
+        <span class="fw-bold text-dark text-capitalize">{{ patient.gender|default:"-" }}</span>
+        <small class="text-muted">({{ patient.date_of_birth|default:"DOB unknown" }})</small>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted fw-semibold d-block">Blood Group</small>
+        <span class="badge bg-light text-danger border fw-bold fs-6">{{ patient.blood_group|default:"Unknown" }}</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted fw-semibold d-block">Phone / Email</small>
+        <span class="text-dark small fw-bold d-block">{{ patient.phone_number|default:"No phone" }}</span>
+        <span class="text-muted small">{{ patient.email }}</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted fw-semibold d-block">Emergency Contact</small>
+        {% if patient.patient_profile %}
+          <span class="text-dark fw-bold small">{{ patient.patient_profile.emergency_contact_name|default:"None listed" }}</span>
+          <br><small class="text-muted">{{ patient.patient_profile.emergency_contact_phone|default:"" }}</small>
+        {% else %}
+          <span class="text-muted small">-</span>
+        {% endif %}
+      </div>
+
+      <!-- Medical Conditions, Allergies, History & Medications -->
+      {% if patient.patient_profile %}
+      <div class="col-md-3 border-top pt-3">
+        <small class="text-danger fw-bold d-block"><i class="bi bi-exclamation-triangle me-1"></i>Known Allergies</small>
+        <span class="text-dark small">{{ patient.patient_profile.allergies|default:"No known allergies." }}</span>
+      </div>
+      <div class="col-md-3 border-top pt-3">
+        <small class="text-primary fw-bold d-block"><i class="bi bi-file-medical me-1"></i>Chronic Conditions</small>
+        <span class="text-dark small">{{ patient.patient_profile.chronic_conditions|default:"None documented." }}</span>
+      </div>
+      <div class="col-md-3 border-top pt-3">
+        <small class="text-dark fw-bold d-block"><i class="bi bi-clipboard2-pulse me-1"></i>Medical History</small>
+        <span class="text-dark small">{{ patient.patient_profile.medical_history|default:"No past surgeries/conditions logged." }}</span>
+      </div>
+      <div class="col-md-3 border-top pt-3">
+        <small class="text-secondary fw-bold d-block"><i class="bi bi-capsule me-1"></i>Current Medications</small>
+        <span class="text-dark small">{{ patient.patient_profile.current_medications|default:"None reported." }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Nav Tabs for Vitals, Alerts, Consultations, Appointments -->
+  <ul class="nav nav-pills mb-3" id="patientChartTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="vitals-tab" data-bs-toggle="tab" data-bs-target="#vitals-pane" type="button" role="tab">
+        <i class="bi bi-activity me-1"></i> Vitals Telemetry ({{ health_records.count }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts-pane" type="button" role="tab">
+        <i class="bi bi-bell me-1"></i> Automated Health Alerts ({{ health_alerts.count }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="consults-tab" data-bs-toggle="tab" data-bs-target="#consults-pane" type="button" role="tab">
+        <i class="bi bi-receipt me-1"></i> Past Consultations ({{ consultations.count }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-pane" type="button" role="tab">
+        <i class="bi bi-calendar3 me-1"></i> Clinic Visits ({{ appointments.count }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="trends-tab" data-bs-toggle="tab" data-bs-target="#trends-pane" type="button" role="tab">
+        <i class="bi bi-graph-up me-1"></i> Vitals Trends & Charts
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="patientChartTabContent">
+    <!-- Vitals Telemetry Tab -->
+    <div class="tab-pane fade show active" id="vitals-pane" role="tabpanel">
+      <div class="card card-custom shadow-sm overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Timestamp</th>
+                <th>Heart Rate</th>
+                <th>Blood Pressure</th>
+                <th>Blood Sugar</th>
+                <th>SpO2</th>
+                <th>Weight / BMI</th>
+                <th>Patient Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in health_records %}
+              <tr>
+                <td class="ps-4 text-nowrap fw-semibold">{{ r.recorded_at|date:"M d, Y h:i A" }}</td>
+                <td>
+                  {% if r.heart_rate %}
+                    <strong>{{ r.heart_rate }}</strong> BPM
+                    {% with s=r.get_heart_rate_status %}<span class="badge bg-{{ s.1 }}">{{ s.0 }}</span>{% endwith %}
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if r.systolic_bp %}
+                    <strong>{{ r.systolic_bp }}/{{ r.diastolic_bp }}</strong> mmHg
+                    {% with s=r.get_bp_status %}<span class="badge bg-{{ s.1 }}">{{ s.0 }}</span>{% endwith %}
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if r.blood_sugar %}
+                    <strong>{{ r.blood_sugar }}</strong> mg/dL
+                    {% with s=r.get_blood_sugar_status %}<span class="badge bg-{{ s.1 }}">{{ s.0 }}</span>{% endwith %}
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if r.oxygen_saturation %}
+                    <strong>{{ r.oxygen_saturation }}%</strong>
+                    {% with s=r.get_oxygen_status %}<span class="badge bg-{{ s.1 }}">{{ s.0 }}</span>{% endwith %}
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if r.weight %}{{ r.weight }} kg{% if r.calculate_bmi %} (BMI: {{ r.calculate_bmi }}){% endif %}{% else %}-{% endif %}
+                </td>
+                <td>{{ r.notes|default:"-" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No telemetry records logged by this patient.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Alerts Tab -->
+    <div class="tab-pane fade" id="alerts-pane" role="tabpanel">
+      <div class="card card-custom shadow-sm p-3">
+        {% for a in health_alerts %}
+        <div class="p-3 border rounded-3 mb-2 {% if not a.is_resolved %}bg-danger-subtle border-danger{% endif %}">
+          <div class="d-flex justify-content-between">
+            <h6 class="fw-bold mb-1">{{ a.title }}</h6>
+            <span class="badge bg-{{ a.get_badge_class }}">{{ a.severity|upper }}</span>
+          </div>
+          <p class="small mb-1 text-secondary">{{ a.message }}</p>
+          <small class="text-muted">{{ a.created_at|date:"M d, Y h:i A" }}</small>
+        </div>
+        {% empty %}
+        <p class="text-center text-muted py-4 small mb-0">No automated health alerts recorded.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Past Consultations Tab -->
+    <div class="tab-pane fade" id="consults-pane" role="tabpanel">
+      <div class="card card-custom shadow-sm p-3">
+        {% for c in consultations %}
+        <div class="p-3 border rounded-3 mb-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+            <div>
+              <h6 class="fw-bold text-dark mb-0">{{ c.diagnosis }}</h6>
+              <small class="text-muted">Dr. {{ c.doctor.user.get_full_name_or_username }} &bull; {{ c.visit_date|date:"F d, Y" }}</small>
+            </div>
+            <a href="{% url 'prescription_detail' c.id %}" class="btn btn-outline-primary btn-sm">View Prescription</a>
+          </div>
+          <div class="small text-secondary mb-2"><strong>Notes:</strong> {{ c.clinical_notes }}</div>
+          {% if c.recommended_tests %}
+            <div class="small text-muted"><strong>Tests:</strong> {{ c.recommended_tests }}</div>
+          {% endif %}
+        </div>
+        {% empty %}
+        <p class="text-center text-muted py-4 small mb-0">No past consultation notes recorded.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Clinic Visits Tab -->
+    <div class="tab-pane fade" id="appointments-pane" role="tabpanel">
+      <div class="card card-custom shadow-sm p-3">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th>Appointment ID</th>
+                <th>Date & Time</th>
+                <th>Reason</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for apt in appointments %}
+              <tr>
+                <td class="font-monospace fw-bold">{{ apt.appointment_id }}</td>
+                <td>{{ apt.appointment_date|date:"M d, Y" }} at {{ apt.appointment_time|time:"h:i A" }}</td>
+                <td>{{ apt.reason_for_visit }}</td>
+                <td><span class="badge bg-{{ apt.get_status_badge_class }}">{{ apt.get_status_display }}</span></td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">No appointments recorded.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vitals Trends & Charts Tab -->
+    <div class="tab-pane fade" id="trends-pane" role="tabpanel">
+      <div id="doctorPatientTrendsContainer"
+           data-labels='{{ trend_labels_json|safe }}'
+           data-sys='{{ trend_sys_json|safe }}'
+           data-dia='{{ trend_dia_json|safe }}'
+           data-hr='{{ trend_hr_json|safe }}'
+           data-sugar='{{ trend_sugar_json|safe }}'>
+        <div class="row g-4">
+          <div class="col-lg-7">
+            <div class="card card-custom p-4 shadow-sm h-100">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-activity text-teal me-2" style="color: var(--primary-teal);"></i>Blood Pressure & Heart Rate Trends</h6>
+                <span class="badge bg-light text-secondary border small">mmHg / BPM</span>
+              </div>
+              <div style="height: 320px;">
+                <canvas id="doctorBpChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="card card-custom p-4 shadow-sm h-100">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-droplet text-warning me-2"></i>Blood Sugar Tracking</h6>
+                <span class="badge bg-light text-secondary border small">mg/dL</span>
+              </div>
+              <div style="height: 320px;">
+                <canvas id="doctorSugarChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Personal Health Summary - {{ patient.get_full_name_or_username }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    body {
+      background-color: #fff !important;
+      font-size: 12pt;
+    }
+    .no-print, .sidebar-wrapper, .navbar, footer, .btn {
+      display: none !important;
+    }
+    .main-wrapper {
+      display: block !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .content-wrapper {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .card {
+      border: 1px solid #ddd !important;
+      box-shadow: none !important;
+      break-inside: avoid;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Top Action Bar (hidden when printing) -->
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3 no-print">
+    <div>
+      <a href="{% url 'patient_dashboard' %}" class="btn btn-sm btn-light border mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+      </a>
+      <h3 class="fw-bold mb-1">Personal Health Summary Card</h3>
+      <p class="text-muted small mb-0">Consolidated clinical overview of your vitals baseline, allergies, and prescriptions</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-primary-teal shadow-sm">
+        <i class="bi bi-printer me-1"></i> Print / Save as PDF
+      </button>
+      <a href="{% url 'health_entry' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-plus-lg me-1"></i> Log New Vitals
+      </a>
+    </div>
+  </div>
+
+  <!-- Medical Summary Document Body -->
+  <div class="card card-custom p-4 p-md-5 shadow-sm mb-4">
+    <!-- Clinical Header -->
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle text-white d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background-color: var(--primary-teal);">
+          <i class="bi bi-heart-pulse-fill fs-3"></i>
+        </div>
+        <div>
+          <h4 class="fw-bold mb-0 text-dark">Smart Health Monitoring System</h4>
+          <small class="text-muted">Official Clinical Summary & Emergency Medical Profile</small>
+        </div>
+      </div>
+      <div class="text-end">
+        <span class="badge bg-light text-dark border px-3 py-2 font-monospace">Generated: {{ today|date:"F d, Y" }}</span>
+      </div>
+    </div>
+
+    <!-- Patient Demographics Section -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-7">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-vcard text-teal me-2" style="color: var(--primary-teal);"></i>Patient Demographics</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-borderless small mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted fw-semibold" style="width: 150px;">Full Name:</td>
+                <td class="fw-bold text-dark fs-6">{{ patient.get_full_name_or_username }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted fw-semibold">Date of Birth:</td>
+                <td>{{ patient.date_of_birth|default:"Not specified" }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted fw-semibold">Gender:</td>
+                <td class="text-capitalize">{{ patient.gender|default:"Not specified" }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted fw-semibold">Blood Group:</td>
+                <td><span class="badge bg-danger fs-6">{{ patient.blood_group|default:"Unknown" }}</span></td>
+              </tr>
+              <tr>
+                <td class="text-muted fw-semibold">Contact Phone:</td>
+                <td>{{ patient.phone_number|default:"None listed" }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted fw-semibold">Email:</td>
+                <td>{{ patient.email }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Emergency & Medical Alerts Column -->
+      <div class="col-md-5">
+        <div class="card p-3 bg-light border h-100">
+          <h6 class="fw-bold text-dark mb-2"><i class="bi bi-telephone-plus text-danger me-2"></i>Emergency Contact</h6>
+          {% if patient_profile and patient_profile.emergency_contact_name %}
+            <p class="small mb-1"><strong>Name:</strong> {{ patient_profile.emergency_contact_name }}</p>
+            <p class="small mb-3"><strong>Phone:</strong> {{ patient_profile.emergency_contact_phone }}</p>
+          {% else %}
+            <p class="small text-muted mb-3">No emergency contact registered.</p>
+          {% endif %}
+
+          <h6 class="fw-bold text-danger mb-1"><i class="bi bi-exclamation-octagon me-1"></i>Known Allergies</h6>
+          <p class="small mb-3">
+            {{ patient_profile.allergies|default:"No known drug or environmental allergies documented." }}
+          </p>
+
+          <h6 class="fw-bold text-primary mb-1"><i class="bi bi-journal-medical me-1"></i>Chronic Conditions</h6>
+          <p class="small mb-0">
+            {{ patient_profile.chronic_conditions|default:"No chronic conditions documented." }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Latest Physiological Readings -->
+    <h5 class="fw-bold text-dark mb-3 border-top pt-4">
+      <i class="bi bi-activity text-teal me-2" style="color: var(--primary-teal);"></i>Latest Telemetry Vitals
+      {% if latest_record %}
+        <small class="text-muted fs-6 fw-normal ms-2">(Recorded {{ latest_record.recorded_at|date:"M d, Y" }} at {{ latest_record.recorded_at|time:"h:i A" }})</small>
+      {% endif %}
+    </h5>
+
+    {% if latest_record %}
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Pulse / Heart Rate</small>
+          <span class="fs-4 fw-bold {% if latest_record.heart_rate < 60 or latest_record.heart_rate > 100 %}text-danger{% else %}text-dark{% endif %}">
+            {{ latest_record.heart_rate }}
+          </span>
+          <small class="text-muted">BPM</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Blood Pressure</small>
+          <span class="fs-4 fw-bold {% if latest_record.systolic_bp >= 135 or latest_record.diastolic_bp >= 88 %}text-warning{% else %}text-dark{% endif %}">
+            {{ latest_record.systolic_bp }}/{{ latest_record.diastolic_bp }}
+          </span>
+          <small class="text-muted">mmHg</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Blood Glucose</small>
+          <span class="fs-4 fw-bold text-dark">
+            {{ latest_record.blood_sugar|default:"--" }}
+          </span>
+          <small class="text-muted">mg/dL</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Oxygen Saturation</small>
+          <span class="fs-4 fw-bold {% if latest_record.oxygen_saturation and latest_record.oxygen_saturation < 95 %}text-danger{% else %}text-dark{% endif %}">
+            {{ latest_record.oxygen_saturation|default:"--" }}%
+          </span>
+          <small class="text-muted">SpO2</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Body Temp</small>
+          <span class="fs-4 fw-bold text-dark">
+            {{ latest_record.temperature|default:"--" }}
+          </span>
+          <small class="text-muted">&deg;F</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Weight & Height</small>
+          <span class="fs-5 fw-bold text-dark">
+            {{ latest_record.weight|default:"--" }} kg
+          </span>
+          <small class="text-muted d-block">{{ latest_record.height|default:"--" }} cm</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 text-center border">
+          <small class="text-muted d-block">Calculated BMI</small>
+          <span class="fs-4 fw-bold text-dark">
+            {% if latest_record.calculate_bmi %}{{ latest_record.calculate_bmi|floatformat:1 }}{% else %}--{% endif %}
+          </span>
+          <small class="text-muted">kg/m&sup2;</small>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted small py-3">No vitals readings recorded yet.</p>
+    {% endif %}
+
+    <!-- 30-Day Physiological Baseline Stats -->
+    <h5 class="fw-bold text-dark mb-3 border-top pt-4">
+      <i class="bi bi-graph-up-arrow text-teal me-2" style="color: var(--primary-teal);"></i>30-Day Baseline Statistical Averages
+    </h5>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 bg-light border">
+          <small class="text-muted fw-semibold">30d Avg Heart Rate</small>
+          <h5 class="fw-bold text-dark mb-0">
+            {% if stats.avg_hr %}{{ stats.avg_hr|floatformat:1 }} <small class="text-muted fs-6">BPM</small>{% else %}--{% endif %}
+          </h5>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 bg-light border">
+          <small class="text-muted fw-semibold">30d Avg Blood Pressure</small>
+          <h5 class="fw-bold text-dark mb-0">
+            {% if stats.avg_sys and stats.avg_dia %}{{ stats.avg_sys|floatformat:0 }}/{{ stats.avg_dia|floatformat:0 }} <small class="text-muted fs-6">mmHg</small>{% else %}--{% endif %}
+          </h5>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 bg-light border">
+          <small class="text-muted fw-semibold">30d Avg Blood Glucose</small>
+          <h5 class="fw-bold text-dark mb-0">
+            {% if stats.avg_sugar %}{{ stats.avg_sugar|floatformat:1 }} <small class="text-muted fs-6">mg/dL</small>{% else %}--{% endif %}
+          </h5>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 bg-light border">
+          <small class="text-muted fw-semibold">30d Avg Oxygen (SpO2)</small>
+          <h5 class="fw-bold text-dark mb-0">
+            {% if stats.avg_spo2 %}{{ stats.avg_spo2|floatformat:1 }}%{% else %}--{% endif %}
+          </h5>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Clinical Consultations & Prescriptions -->
+    <h5 class="fw-bold text-dark mb-3 border-top pt-4">
+      <i class="bi bi-journal-check text-teal me-2" style="color: var(--primary-teal);"></i>Recent Medical Consultations & Prescriptions
+    </h5>
+    {% if consultations %}
+    <div class="table-responsive mb-4">
+      <table class="table table-sm table-bordered align-middle small">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Attending Physician</th>
+            <th>Diagnosis</th>
+            <th>Prescriptions & Treatment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in consultations %}
+          <tr>
+            <td class="fw-medium">{{ c.visit_date|date:"M d, Y" }}</td>
+            <td class="fw-bold">Dr. {{ c.doctor.user.get_full_name_or_username }} ({{ c.doctor.specialization }})</td>
+            <td>{{ c.diagnosis|default:"Routine Evaluation" }}</td>
+            <td>
+              {% if c.prescription %}
+                <div class="font-monospace small">{{ c.prescription|linebreaksbr }}</div>
+              {% else %}
+                <span class="text-muted">Observation / lifestyle guidance</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted small">No past consultations recorded.</p>
+    {% endif %}
+
+    <!-- Clinical Disclaimer -->
+    <div class="border-top pt-3 mt-4 text-muted small">
+      <p class="mb-0" style="font-size: 0.75rem;">
+        <strong>Notice:</strong> This medical record summary is generated by the Smart Health Monitoring System for patient information and clinical handoff. For acute symptoms, medical emergencies, or medication adjustments, please consult your healthcare provider or call local emergency services immediately.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Log Health Vitals - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold mb-1">Record Daily Health Vitals</h3>
+          <p class="text-muted small mb-0">Input your latest physiological measurements for trend analysis and automated health alerts</p>
+        </div>
+        <a href="{% url 'health_history' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-clock-history me-1"></i> View History
+        </a>
+      </div>
+
+      <div class="row g-4">
+        <!-- Vitals Input Form -->
+        <div class="col-lg-8">
+          <div class="card card-custom p-4 shadow-sm">
+            <form method="post" novalidate>
+              {% csrf_token %}
+
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 small">
+                  {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+                </div>
+              {% endif %}
+
+              <h6 class="fw-bold text-teal mb-3 border-bottom pb-2" style="color: var(--primary-teal);">
+                <i class="bi bi-activity me-1"></i> Cardiovascular & Hemodynamic Vitals
+              </h6>
+              <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Heart Rate (Pulse)</label>
+                  <div class="input-group">
+                    {{ form.heart_rate }}
+                    <span class="input-group-text bg-light text-muted small">BPM</span>
+                  </div>
+                  {% if form.heart_rate.errors %}<div class="text-danger small">{{ form.heart_rate.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Systolic BP (Upper)</label>
+                  <div class="input-group">
+                    {{ form.systolic_bp }}
+                    <span class="input-group-text bg-light text-muted small">mmHg</span>
+                  </div>
+                  {% if form.systolic_bp.errors %}<div class="text-danger small">{{ form.systolic_bp.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Diastolic BP (Lower)</label>
+                  <div class="input-group">
+                    {{ form.diastolic_bp }}
+                    <span class="input-group-text bg-light text-muted small">mmHg</span>
+                  </div>
+                  {% if form.diastolic_bp.errors %}<div class="text-danger small">{{ form.diastolic_bp.errors.0 }}</div>{% endif %}
+                </div>
+              </div>
+
+              <h6 class="fw-bold text-teal mb-3 border-bottom pb-2" style="color: var(--primary-teal);">
+                <i class="bi bi-droplet-half me-1"></i> Metabolic & Respiratory Metrics
+              </h6>
+              <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Blood Glucose</label>
+                  <div class="input-group">
+                    {{ form.blood_sugar }}
+                    <span class="input-group-text bg-light text-muted small">mg/dL</span>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Oxygen Saturation (SpO2)</label>
+                  <div class="input-group">
+                    {{ form.oxygen_saturation }}
+                    <span class="input-group-text bg-light text-muted small">%</span>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold">Body Temperature</label>
+                  <div class="input-group">
+                    {{ form.temperature }}
+                    <span class="input-group-text bg-light text-muted small">°F</span>
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="fw-bold text-teal mb-3 border-bottom pb-2" style="color: var(--primary-teal);">
+                <i class="bi bi-person me-1"></i> Physical Measurements & Observations
+              </h6>
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Weight</label>
+                  <div class="input-group">
+                    {{ form.weight }}
+                    <span class="input-group-text bg-light text-muted small">kg</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Height</label>
+                  <div class="input-group">
+                    {{ form.height }}
+                    <span class="input-group-text bg-light text-muted small">cm</span>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Patient Notes / Symptoms</label>
+                  {{ form.notes }}
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary-teal px-4">
+                  <i class="bi bi-check2-circle me-1"></i> Save Health Vitals
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Normal Ranges Reference Box -->
+        <div class="col-lg-4">
+          <div class="card card-custom p-4 bg-light border shadow-sm">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Clinical Reference Ranges</h6>
+            <div class="list-group list-group-flush bg-transparent small">
+              <div class="list-group-item bg-transparent px-0 py-2 border-bottom">
+                <div class="fw-semibold text-dark">Heart Rate</div>
+                <div class="text-muted">Normal resting: <strong>60 – 100 BPM</strong></div>
+              </div>
+              <div class="list-group-item bg-transparent px-0 py-2 border-bottom">
+                <div class="fw-semibold text-dark">Blood Pressure</div>
+                <div class="text-muted">Normal: <strong>&lt; 120/80 mmHg</strong></div>
+                <div class="text-muted">Elevated: 120-129 / &lt;80 mmHg</div>
+                <div class="text-danger">Stage 2: &ge; 140/90 mmHg</div>
+              </div>
+              <div class="list-group-item bg-transparent px-0 py-2 border-bottom">
+                <div class="fw-semibold text-dark">Blood Glucose</div>
+                <div class="text-muted">Fasting: <strong>70 – 99 mg/dL</strong></div>
+                <div class="text-muted">Post-meal: &lt; 140 mg/dL</div>
+              </div>
+              <div class="list-group-item bg-transparent px-0 py-2 border-bottom">
+                <div class="fw-semibold text-dark">Oxygen Saturation (SpO2)</div>
+                <div class="text-muted">Normal: <strong>95% – 100%</strong></div>
+                <div class="text-danger">Hypoxia alert: &lt; 95%</div>
+              </div>
+              <div class="list-group-item bg-transparent px-0 py-2">
+                <div class="fw-semibold text-dark">Body Temperature</div>
+                <div class="text-muted">Normal oral: <strong>97.8°F – 99.1°F</strong></div>
+              </div>
+            </div>
+
+            <div class="mt-3 p-2 bg-white rounded border small text-muted">
+              <i class="bi bi-shield-check text-teal me-1" style="color: var(--primary-teal);"></i>
+              The system automatically compares your inputs against these parameters to alert you and your doctor if vitals drift out of range.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

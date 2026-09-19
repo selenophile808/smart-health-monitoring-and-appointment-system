@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Record Consultation - Appointment {{ appointment.appointment_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="{% url 'doctor_today_appointments' %}" class="btn btn-sm btn-light border mb-2">
+            <i class="bi bi-arrow-left me-1"></i> Back to Schedule
+          </a>
+          <h3 class="fw-bold mb-1">Clinical Consultation & Digital Prescription</h3>
+          <p class="text-muted small mb-0">Record formal medical findings, diagnostic orders, and issued medication prescriptions</p>
+        </div>
+      </div>
+
+      <!-- Patient & Appointment Context Bar -->
+      <div class="card card-custom p-4 shadow-sm mb-4 bg-light border">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <small class="text-muted fw-semibold d-block">Patient Name</small>
+            <h5 class="fw-bold text-dark mb-0">{{ appointment.patient.get_full_name_or_username }}</h5>
+            <small class="text-muted">DOB: {{ appointment.patient.date_of_birth|default:"-" }} &bull; Gender: {{ appointment.patient.gender|default:"-"|title }}</small>
+            <a href="{% url 'doctor_patient_detail' appointment.patient.id %}" target="_blank" class="d-block small text-teal fw-semibold mt-1">
+              <i class="bi bi-clock-history me-1"></i>View full history &amp; past records
+            </a>
+          </div>
+          <div class="col-md-4">
+            <small class="text-muted fw-semibold d-block">Appointment Slot</small>
+            <span class="fw-bold text-dark">{{ appointment.appointment_date|date:"M d, Y" }} at {{ appointment.appointment_time|time:"h:i A" }}</span>
+            <small class="text-muted d-block font-monospace">Ref: {{ appointment.appointment_id }}</small>
+          </div>
+          <div class="col-md-4">
+            <small class="text-muted fw-semibold d-block">Stated Chief Complaint</small>
+            <span class="text-dark small fw-medium">{{ appointment.reason_for_visit }}</span>
+          </div>
+
+          {% if latest_vitals %}
+          <div class="col-12 border-top pt-2 mt-2">
+            <div class="d-flex flex-wrap gap-3 small text-muted align-items-center">
+              <span class="fw-bold text-dark"><i class="bi bi-activity text-teal me-1" style="color: var(--primary-teal);"></i>Latest Telemetry:</span>
+              <span>BP: <strong>{{ latest_vitals.systolic_bp|default:"-" }}/{{ latest_vitals.diastolic_bp|default:"-" }}</strong> mmHg</span>
+              <span>Pulse: <strong>{{ latest_vitals.heart_rate|default:"-" }}</strong> BPM</span>
+              <span>Glucose: <strong>{{ latest_vitals.blood_sugar|default:"-" }}</strong> mg/dL</span>
+              <span>SpO2: <strong>{{ latest_vitals.oxygen_saturation|default:"-" }}%</strong></span>
+              <span>Weight: <strong>{{ latest_vitals.weight|default:"-" }}</strong> kg</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Consultation & Prescription Form -->
+      <div class="card card-custom p-4 p-md-5 shadow-sm">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 small">
+              {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+            </div>
+          {% endif %}
+
+          <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">1. Clinical Findings & Diagnosis</h5>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Primary Diagnosis *</label>
+            {{ form.diagnosis }}
+            {% if form.diagnosis.errors %}<div class="text-danger small">{{ form.diagnosis.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Symptoms & Clinical Observations</label>
+            {{ form.symptoms_observed }}
+          </div>
+
+          <h5 class="fw-bold text-teal border-bottom pb-2 mb-3 mt-4" style="color: var(--primary-teal);">
+            <i class="bi bi-prescription2 me-1"></i> 2. Digital Prescription (Rx)
+          </h5>
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Prescription Items (Name | Dosage | Frequency | Duration | Instructions) *</label>
+            {{ form.prescription_items }}
+            <div class="form-text small">Enter each drug on a separate line following the template for standard patient readability.</div>
+            {% if form.prescription_items.errors %}<div class="text-danger small">{{ form.prescription_items.errors.0 }}</div>{% endif %}
+          </div>
+
+          <h5 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4">3. Orders, Advice & Follow-Up</h5>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Recommended Diagnostic Investigations / Lab Tests</label>
+            {{ form.recommended_tests }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Physician Notes, Diet & Lifestyle Advice *</label>
+            {{ form.clinical_notes }}
+            {% if form.clinical_notes.errors %}<div class="text-danger small">{{ form.clinical_notes.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Recommended Follow-up Consultation Date</label>
+            {{ form.follow_up_date }}
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a href="{% url 'doctor_today_appointments' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary-teal px-4 py-2 fw-semibold">
+              <i class="bi bi-check-circle me-1"></i> Finalize Consultation & Issue Prescription
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

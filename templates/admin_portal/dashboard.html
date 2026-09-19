@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Administrative Overview & Analytics</h3>
+      <p class="text-muted small mb-0">System metrics, provider approvals, patient telemetry status, and appointment distributions</p>
+    </div>
+    <span class="badge bg-dark px-3 py-2 rounded-pill fs-6">
+      <i class="bi bi-shield-lock me-1"></i> System Administrator
+    </span>
+  </div>
+
+  <!-- AI Operations Summary -->
+  <div class="card card-custom p-3 mb-4 border-start border-4" style="border-color: var(--primary-teal, #0F766E) !important; background: #F0FDFA;">
+    <div class="d-flex align-items-start gap-2">
+      <i class="bi bi-stars text-teal mt-1" style="color: var(--primary-teal, #0F766E);"></i>
+      <div>
+        <div class="fw-bold small text-dark mb-1">AI Operations Summary</div>
+        <p class="small text-secondary mb-0">{{ ai_summary }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat Cards Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <div>
+          <span class="text-muted small fw-semibold">Patients</span>
+          <h3 class="fw-bold mb-0 text-dark">{{ total_patients }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <div>
+          <span class="text-muted small fw-semibold">Doctors</span>
+          <h3 class="fw-bold mb-0 text-teal" style="color: var(--primary-teal);">{{ total_doctors }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <div>
+          <span class="text-muted small fw-semibold">Appointments</span>
+          <h3 class="fw-bold mb-0 text-primary">{{ total_appointments }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <div>
+          <span class="text-muted small fw-semibold">Pending</span>
+          <h3 class="fw-bold mb-0 text-warning">{{ pending_appointments }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <div>
+          <span class="text-muted small fw-semibold">Completed</span>
+          <h3 class="fw-bold mb-0 text-success">{{ completed_appointments }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <div>
+          <span class="text-muted small fw-semibold">Active Alerts</span>
+          <h3 class="fw-bold mb-0 text-danger">{{ active_alerts_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Charts Row -->
+  <div class="row g-4 mb-4">
+    <!-- Appointments by Status Chart -->
+    <div class="col-lg-6">
+      <div class="card card-custom p-4 shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-dark mb-0">Appointments by Status</h5>
+          <span class="badge bg-light text-muted border small">Distribution</span>
+        </div>
+        <div style="height: 280px;">
+          <canvas id="adminStatusChart"
+                  data-labels="{{ status_labels_json }}"
+                  data-values="{{ status_values_json }}"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Doctors Specialization Distribution Chart -->
+    <div class="col-lg-6">
+      <div class="card card-custom p-4 shadow-sm h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-dark mb-0">Specialization Capacity</h5>
+          <span class="badge bg-light text-muted border small">Doctors per discipline</span>
+        </div>
+        <div style="height: 280px;">
+          <canvas id="adminSpecChart"
+                  data-labels="{{ spec_labels_json }}"
+                  data-values="{{ spec_values_json }}"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Approvals & Recent Appointments Table Row -->
+  <div class="row g-4">
+    <div class="col-lg-12">
+      <div class="card card-custom p-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-dark mb-0">Recent Platform Appointments</h5>
+          <a href="{% url 'admin_appointment_management' %}" class="btn btn-outline-teal btn-sm">Manage All</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th>Appointment ID</th>
+                <th>Patient</th>
+                <th>Attending Doctor</th>
+                <th>Slot Date & Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for apt in recent_appointments %}
+              <tr>
+                <td class="font-monospace fw-bold text-teal" style="color: var(--primary-teal);">{{ apt.appointment_id }}</td>
+                <td>{{ apt.patient.get_full_name_or_username }}</td>
+                <td>Dr. {{ apt.doctor.user.get_full_name_or_username }} ({{ apt.doctor.specialization }})</td>
+                <td>{{ apt.appointment_date|date:"M d, Y" }} at {{ apt.appointment_time|time:"h:i A" }}</td>
+                <td><span class="badge bg-{{ apt.get_status_badge_class }}">{{ apt.get_status_display }}</span></td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted">No appointments recorded yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

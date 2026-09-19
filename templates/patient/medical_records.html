@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Medical Records - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Electronic Medical Records & Prescriptions</h3>
+      <p class="text-muted small mb-0">Consolidated history of physician diagnoses, clinical notes, and digital prescriptions</p>
+    </div>
+  </div>
+
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Visit Date</th>
+            <th>Attending Doctor</th>
+            <th>Specialization</th>
+            <th>Clinical Diagnosis</th>
+            <th>Follow-up</th>
+            <th class="text-end pe-4">Prescription</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in records %}
+          <tr>
+            <td class="ps-4 text-nowrap">
+              <span class="fw-semibold text-dark">{{ record.visit_date|date:"M d, Y" }}</span><br>
+              <small class="text-muted">Apt ID: {{ record.appointment.appointment_id }}</small>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">Dr. {{ record.doctor.user.get_full_name_or_username }}</div>
+              <small class="text-muted">{{ record.doctor.hospital_or_clinic }}</small>
+            </td>
+            <td>
+              <span class="badge badge-teal">{{ record.doctor.specialization }}</span>
+            </td>
+            <td>
+              <span class="fw-semibold text-dark">{{ record.diagnosis }}</span>
+              {% if record.clinical_notes %}
+                <br><small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">{{ record.clinical_notes }}</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if record.follow_up_date %}
+                <span class="badge bg-light text-dark border"><i class="bi bi-calendar-event me-1"></i>{{ record.follow_up_date|date:"M d, Y" }}</span>
+              {% else %}
+                <span class="text-muted small">As needed</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <a href="{% url 'prescription_detail' record.id %}" class="btn btn-primary-teal btn-sm">
+                <i class="bi bi-receipt me-1"></i> View / Print
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-file-earmark-medical fs-1 d-block mb-2 text-secondary"></i>
+              <h5 class="fw-bold text-dark">No Medical Records Yet</h5>
+              <p class="small">Clinical notes and digital prescriptions will be recorded here once you complete doctor consultations.</p>
+              <a href="{% url 'book_appointment' %}" class="btn btn-outline-teal btn-sm">Book an Appointment</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Patient Management - Admin Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Patient Management</h3>
+      <p class="text-muted small mb-0">System-wide registry of all registered patients and telemetry records</p>
+    </div>
+    <span class="badge bg-primary px-3 py-2 rounded-pill fs-6">{{ patients.count }} Registered Patient{{ patients.count|pluralize }}</span>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="card card-custom p-3 mb-4 shadow-sm">
+    <form method="get" class="d-flex gap-2">
+      <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by patient username, name, or email...">
+      </div>
+      <button type="submit" class="btn btn-primary-teal">Search</button>
+      {% if query %}
+        <a href="{% url 'admin_patient_management' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Patients Table -->
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Patient Name / Username</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Gender / Blood</th>
+            <th>Vitals Logged</th>
+            <th>Appointments Booked</th>
+            <th>Joined On</th>
+            <th>Account Status</th>
+            <th class="text-end pe-4">Admin Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in patients %}
+          <tr>
+            <td class="ps-4">
+              <div class="fw-bold text-dark">{{ p.get_full_name_or_username }}</div>
+              <small class="text-muted font-monospace">@{{ p.username }}</small>
+            </td>
+            <td>{{ p.email }}</td>
+            <td>{{ p.phone_number|default:"-" }}</td>
+            <td>{{ p.gender|default:"-"|title }} / <span class="badge bg-light text-danger border">{{ p.blood_group|default:"-" }}</span></td>
+            <td><span class="badge bg-teal" style="background-color: var(--primary-teal-light); color: var(--primary-teal);">{{ p.health_records.count }} logs</span></td>
+            <td><span class="badge bg-light text-dark border">{{ p.appointments.count }} visits</span></td>
+            <td>{{ p.date_joined|date:"M d, Y" }}</td>
+            <td>
+              {% if p.is_active %}
+                <span class="badge bg-success"><i class="bi bi-person-check me-1"></i>Active</span>
+              {% else %}
+                <span class="badge bg-secondary"><i class="bi bi-person-x me-1"></i>Deactivated</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <form action="{% url 'admin_toggle_patient_active' p.id %}" method="post" class="d-inline">
+                {% csrf_token %}
+                {% if p.is_active %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="Deactivate Account">
+                    <i class="bi bi-person-x me-1"></i> Deactivate
+                  </button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-success" title="Activate Account">
+                    <i class="bi bi-person-check me-1"></i> Activate
+                  </button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center py-5 text-muted">No patients found matching your search.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

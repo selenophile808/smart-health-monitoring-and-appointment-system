@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Smart Health Monitoring and Appointment System{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section py-5">
+  <div class="container px-4">
+    <div class="row align-items-center gy-4">
+      <div class="col-lg-7">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white border shadow-sm mb-3">
+          <span class="badge rounded-pill" style="background-color: var(--primary-teal); color: #fff;">AI + Healthcare</span>
+          <span class="small fw-semibold text-muted">Next-Gen Intelligent Care & Queue Management</span>
+        </div>
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <i class="bi bi-heart-fill shmas-heartbeat" style="color: #DC2626; font-size: 2rem;"></i>
+          <svg viewBox="0 0 200 40" style="width: 140px; height: 32px;">
+            <polyline class="shmas-ecg-line" points="0,20 30,20 40,5 50,35 60,20 90,20 100,10 110,30 120,20 200,20" fill="none" stroke="var(--primary-teal)" stroke-width="2"/>
+          </svg>
+        </div>
+        <h1 class="display-4 fw-bold text-dark mb-3" style="line-height: 1.15;">
+          Smart Health Monitoring & Instant Appointment Care
+        </h1>
+        <p class="lead text-secondary mb-4">
+          Monitor your vital health trends, receive immediate automated alerts, assess symptoms with our AI triage assistant, book specialist appointments, and track your clinic waiting queue in real time.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <a href="{% url 'patient_register' %}" class="btn btn-primary-teal btn-lg px-4 shadow-sm">
+            <i class="bi bi-heart-pulse me-2"></i> Join as Patient
+          </a>
+          <a href="{% url 'doctor_login' %}" class="btn btn-secondary-blue btn-lg px-4 shadow-sm">
+            <i class="bi bi-person-badge me-2"></i> Doctor Login
+          </a>
+          <a href="{% url 'login' %}" class="btn btn-outline-teal btn-lg px-3">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Patient Login
+          </a>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2 text-muted small">
+          <span class="fw-semibold">Direct Portals:</span>
+          <a href="{% url 'login' %}" class="badge bg-light text-teal border text-decoration-none py-2 px-3" style="color: var(--primary-teal);"><i class="bi bi-person me-1"></i> Patient Portal</a>
+          <a href="{% url 'doctor_login' %}" class="badge bg-light text-primary border text-decoration-none py-2 px-3"><i class="bi bi-heart-pulse me-1"></i> Doctor Portal</a>
+          <a href="{% url 'admin_login' %}" class="badge bg-light text-dark border text-decoration-none py-2 px-3"><i class="bi bi-shield-lock me-1"></i> Admin Portal</a>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card card-custom p-4 shadow border-0 bg-white">
+          <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="p-2 rounded-circle" style="background-color: var(--primary-teal-light); color: var(--primary-teal);">
+                <i class="bi bi-stars fs-4"></i>
+              </span>
+              <div>
+                <h6 class="mb-0 fw-bold">Instant Health Triage</h6>
+                <small class="text-muted">Preliminary guidance</small>
+              </div>
+            </div>
+            <span class="badge bg-success">Active AI Engine</span>
+          </div>
+
+          <p class="small text-muted mb-3">
+            Experiencing unusual symptoms? Our AI evaluates your symptoms, assesses urgency, recommends clinical specialties, and connects you directly to doctors.
+          </p>
+
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between mb-2 small text-muted">
+              <span>Automated Vital Check:</span>
+              <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i> Normal Ranges</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small text-muted">
+              <span>Average Clinic Queue Wait:</span>
+              <span class="text-primary fw-bold">~15 - 20 Mins</span>
+            </div>
+            <div class="d-flex justify-content-between small text-muted">
+              <span>Specializations Available:</span>
+              <span class="fw-bold text-dark">13 Medical Disciplines</span>
+            </div>
+          </div>
+
+          <a href="{% url 'symptom_assessment' %}" class="btn btn-primary-teal w-100 py-2">
+            <i class="bi bi-lightning-charge me-1"></i> Start AI Symptom Assessment
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Bar -->
+<section class="py-4 bg-white border-bottom">
+  <div class="container px-4">
+    <div class="row text-center gy-3">
+      <div class="col-md-4">
+        <h3 class="fw-bold text-teal mb-0" style="color: var(--primary-teal);">{{ stats.doctors_count|default:"12" }}+</h3>
+        <p class="text-muted small mb-0">Verified Medical Specialists</p>
+      </div>
+      <div class="col-md-4 border-start border-end">
+        <h3 class="fw-bold text-primary mb-0">{{ stats.patients_count|default:"250" }}+</h3>
+        <p class="text-muted small mb-0">Registered Active Patients</p>
+      </div>
+      <div class="col-md-4">
+        <h3 class="fw-bold text-success mb-0">{{ stats.appointments_count|default:"1,200" }}+</h3>
+        <p class="text-muted small mb-0">Consultations & Queue Slots Handled</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Unique Features Grid -->
+<section class="py-5 fade-in-section" style="background-color: var(--bg-main);">
+  <div class="container px-4">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <h6 class="text-uppercase fw-bold text-teal small" style="color: var(--primary-teal); letter-spacing: 1px;">Integrated Healthcare Platform</h6>
+      <h2 class="fw-bold text-dark">Engineered for Precision, Safety & Convenience</h2>
+      <p class="text-muted">A connected care continuum combining patient vital telemetry with clinical appointment management.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="card card-custom h-100 p-4">
+          <div class="stat-icon stat-icon-teal mb-3">
+            <i class="bi bi-robot"></i>
+          </div>
+          <h5 class="fw-bold mb-2">AI Symptom Assessment</h5>
+          <p class="text-muted small mb-0">
+            Intelligent multi-step symptom evaluation using Google Gemini with clinical red-flag detection and urgency classification.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="card card-custom h-100 p-4">
+          <div class="stat-icon stat-icon-blue mb-3">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Vital Trends & Telemetry</h5>
+          <p class="text-muted small mb-0">
+            Continuous recording of Blood Pressure, Pulse, Glucose, SpO2, and Weight with 7-day, 30-day, and 3-month Chart.js analytics.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="card card-custom h-100 p-4">
+          <div class="stat-icon stat-icon-warning mb-3">
+            <i class="bi bi-bell-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Automated Health Alerts</h5>
+          <p class="text-muted small mb-0">
+            Immediate clinical threshold monitoring for hypertension, arrhythmias, hyperglycemia, or hypoxia alerting both patient and doctor.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="card card-custom h-100 p-4">
+          <div class="stat-icon stat-icon-success mb-3">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Smart Queue & Wait Times</h5>
+          <p class="text-muted small mb-0">
+            Live queue position, count of preceding patients, and algorithmic estimated waiting-time tracker to minimize physical waiting room delays.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- End-to-End Workflow Diagram -->
+<section class="py-5 bg-white border-top border-bottom fade-in-section">
+  <div class="container px-4">
+    <div class="text-center mb-5">
+      <h6 class="text-uppercase fw-bold text-teal small" style="color: var(--primary-teal);">Integrated Workflow</h6>
+      <h2 class="fw-bold text-dark">The Patient Care Journey</h2>
+    </div>
+
+    <div class="row g-3 text-center justify-content-center">
+      <div class="col-6 col-md-2">
+        <div class="p-3 bg-light rounded-3 h-100 border">
+          <i class="bi bi-clipboard2-pulse fs-3 text-teal" style="color: var(--primary-teal);"></i>
+          <h6 class="fw-bold mt-2 mb-1 small">1. Log Vitals</h6>
+          <p class="text-muted" style="font-size: 0.75rem;">Enter BP, Heart Rate, Glucose</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="p-3 bg-light rounded-3 h-100 border">
+          <i class="bi bi-exclamation-triangle fs-3 text-warning"></i>
+          <h6 class="fw-bold mt-2 mb-1 small">2. Auto Alerts</h6>
+          <p class="text-muted" style="font-size: 0.75rem;">Threshold deviation notice</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="p-3 bg-light rounded-3 h-100 border">
+          <i class="bi bi-stars fs-3 text-primary"></i>
+          <h6 class="fw-bold mt-2 mb-1 small">3. AI Triage</h6>
+          <p class="text-muted" style="font-size: 0.75rem;">Symptom analysis & urgency</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="p-3 bg-light rounded-3 h-100 border">
+          <i class="bi bi-person-check fs-3 text-success"></i>
+          <h6 class="fw-bold mt-2 mb-1 small">4. Doctor Match</h6>
+          <p class="text-muted" style="font-size: 0.75rem;">Specialization recommended</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="p-3 bg-light rounded-3 h-100 border">
+          <i class="bi bi-calendar2-check fs-3 text-info"></i>
+          <h6 class="fw-bold mt-2 mb-1 small">5. Book & Queue</h6>
+          <p class="text-muted" style="font-size: 0.75rem;">Live wait-time tracking</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="p-3 bg-light rounded-3 h-100 border">
+          <i class="bi bi-receipt fs-3 text-dark"></i>
+          <h6 class="fw-bold mt-2 mb-1 small">6. Prescription</h6>
+          <p class="text-muted" style="font-size: 0.75rem;">Digital medical record</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Doctors Section -->
+{% if featured_doctors %}
+<section class="py-5 fade-in-section" style="background-color: var(--bg-main); overflow: hidden;">
+  <div class="container px-4">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <h6 class="text-uppercase fw-bold text-teal small" style="color: var(--primary-teal);">Our Clinical Team</h6>
+        <h2 class="fw-bold text-dark mb-0">Meet Our Doctors</h2>
+      </div>
+      <a href="{% url 'doctor_list' %}" class="btn btn-outline-teal btn-sm">View All Doctors <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+  </div>
+
+  <div class="doctor-carousel-track-wrap">
+    <div class="doctor-carousel-track">
+      {% for doc in featured_doctors %}
+      <div class="doctor-carousel-card card card-custom p-3 text-center">
+        {% if doc.user.profile_picture %}
+          <img src="{{ doc.user.profile_picture.url }}" alt="" class="rounded-circle mx-auto mb-3" style="width: 70px; height: 70px; object-fit: cover;">
+        {% else %}
+        <div class="avatar-circle mx-auto mb-3 text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-3" style="width: 70px; height: 70px; background: linear-gradient(135deg, var(--primary-teal), var(--secondary-blue));">
+          {{ doc.user.first_name|first|default:doc.user.username|first|upper }}
+        </div>
+        {% endif %}
+        <h5 class="fw-bold mb-1">Dr. {{ doc.user.get_full_name_or_username }}</h5>
+        <div class="mb-2">
+          <span class="badge badge-teal d-inline-block">{{ doc.specialization }}</span>
+          <span class="badge bg-{{ doc.get_status_badge_class }} d-inline-block">{{ doc.get_current_status_display }}</span>
+        </div>
+        <p class="text-muted small mb-1">{{ doc.qualification }} &bull; {{ doc.experience_years }} yrs exp.</p>
+        {% if doc.get_average_rating %}
+          <p class="small text-muted mb-2"><i class="bi bi-star-fill text-warning"></i> {{ doc.get_average_rating }} ({{ doc.get_review_count }})</p>
+        {% else %}
+          <p class="small text-muted mb-2">&nbsp;</p>
+        {% endif %}
+
+        <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+          <span class="fw-bold text-dark">${{ doc.consultation_fee }}</span>
+          <a href="{% url 'book_appointment' %}?doctor_id={{ doc.id }}" class="btn btn-primary-teal btn-sm">
+            Book Visit
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+      {% for doc in featured_doctors %}
+      <div class="doctor-carousel-card card card-custom p-3 text-center" aria-hidden="true">
+        {% if doc.user.profile_picture %}
+          <img src="{{ doc.user.profile_picture.url }}" alt="" class="rounded-circle mx-auto mb-3" style="width: 70px; height: 70px; object-fit: cover;">
+        {% else %}
+        <div class="avatar-circle mx-auto mb-3 text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-3" style="width: 70px; height: 70px; background: linear-gradient(135deg, var(--primary-teal), var(--secondary-blue));">
+          {{ doc.user.first_name|first|default:doc.user.username|first|upper }}
+        </div>
+        {% endif %}
+        <h5 class="fw-bold mb-1">Dr. {{ doc.user.get_full_name_or_username }}</h5>
+        <div class="mb-2">
+          <span class="badge badge-teal d-inline-block">{{ doc.specialization }}</span>
+          <span class="badge bg-{{ doc.get_status_badge_class }} d-inline-block">{{ doc.get_current_status_display }}</span>
+        </div>
+        <p class="text-muted small mb-1">{{ doc.qualification }} &bull; {{ doc.experience_years }} yrs exp.</p>
+        {% if doc.get_average_rating %}
+          <p class="small text-muted mb-2"><i class="bi bi-star-fill text-warning"></i> {{ doc.get_average_rating }} ({{ doc.get_review_count }})</p>
+        {% else %}
+          <p class="small text-muted mb-2">&nbsp;</p>
+        {% endif %}
+        <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+          <span class="fw-bold text-dark">${{ doc.consultation_fee }}</span>
+          <a href="{% url 'book_appointment' %}?doctor_id={{ doc.id }}" class="btn btn-primary-teal btn-sm">
+            Book Visit
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Direct Portal Access Grid -->
+<section class="py-5 bg-white border-top">
+  <div class="container px-4">
+    <div class="text-center mb-4">
+      <h6 class="text-uppercase fw-bold text-teal small" style="color: var(--primary-teal);">Direct Portal Access</h6>
+      <h3 class="fw-bold text-dark">Choose Your Access Portal</h3>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      <!-- Patient Portal -->
+      <div class="col-md-4">
+        <div class="card card-custom p-4 h-100 text-center border-top border-4" style="border-top-color: var(--primary-teal) !important;">
+          <div class="rounded-circle text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; background-color: var(--primary-teal);">
+            <i class="bi bi-person fs-2"></i>
+          </div>
+          <h5 class="fw-bold text-dark">Patient Portal</h5>
+          <p class="text-muted small mb-4">Log daily health vitals, track estimated queue wait times, consult AI triage, and manage appointments.</p>
+          <div class="d-grid gap-2 mt-auto">
+            <a href="{% url 'login' %}" class="btn btn-primary-teal">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Patient Login
+            </a>
+            <a href="{% url 'patient_register' %}" class="btn btn-outline-teal btn-sm">
+              Register New Patient
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Doctor Portal -->
+      <div class="col-md-4">
+        <div class="card card-custom p-4 h-100 text-center border-top border-4" style="border-top-color: var(--secondary-blue) !important;">
+          <div class="rounded-circle text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; background-color: var(--secondary-blue);">
+            <i class="bi bi-heart-pulse fs-2"></i>
+          </div>
+          <h5 class="fw-bold text-dark">Doctor Portal</h5>
+          <p class="text-muted small mb-4">Review appointment requests, view today's clinic queue, write clinical notes, and issue digital prescriptions.</p>
+          <div class="d-grid gap-2 mt-auto">
+            <a href="{% url 'doctor_login' %}" class="btn btn-secondary-blue">
+              <i class="bi bi-person-badge me-1"></i> Doctor Login
+            </a>
+            <a href="{% url 'doctor_register' %}" class="btn btn-outline-primary btn-sm">
+              Join as Healthcare Provider
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Portal -->
+      <div class="col-md-4">
+        <div class="card card-custom p-4 h-100 text-center border-top border-4" style="border-top-color: #0F172A !important;">
+          <div class="rounded-circle text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; background-color: #0F172A;">
+            <i class="bi bi-shield-lock fs-2"></i>
+          </div>
+          <h5 class="fw-bold text-dark">Administrator Console</h5>
+          <p class="text-muted small mb-4">Manage healthcare providers, verify doctor accreditations, supervise appointments, and inspect platform analytics.</p>
+          <div class="d-grid gap-2 mt-auto">
+            <a href="{% url 'admin_login' %}" class="btn btn-dark">
+              <i class="bi bi-shield-lock me-1"></i> Admin Login
+            </a>
+            <a href="/django-admin/" target="_blank" class="btn btn-outline-secondary btn-sm">
+              Django Admin Panel
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Medical Disclaimer CTA Banner -->
+<section class="py-4 bg-light border-top">
+  <div class="container px-4">
+    <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 p-3 bg-white rounded-3 border">
+      <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-shield-exclamation text-warning fs-2"></i>
+        <div>
+          <h6 class="mb-0 fw-bold">Emergency Notice & Disclaimer</h6>
+          <small class="text-muted">If you are experiencing chest pain, severe shortness of breath, sudden facial numbness, or severe trauma, please dial 911 or visit your nearest emergency room immediately.</small>
+        </div>
+      </div>
+      <a href="tel:911" class="btn btn-outline-danger btn-sm text-nowrap">
+        <i class="bi bi-telephone-fill me-1"></i> Emergency Hotline
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

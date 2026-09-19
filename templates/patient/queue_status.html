@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Live Queue Tracker - {{ appointment.appointment_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid" id="queue-live-tracker" data-appointment-id="{{ appointment.id }}">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="{% url 'my_appointments' %}" class="btn btn-sm btn-light border mb-2">
+            <i class="bi bi-arrow-left me-1"></i> My Appointments
+          </a>
+          <h3 class="fw-bold mb-1 text-dark">Live Clinic Queue & Wait Time</h3>
+          <p class="text-muted small mb-0">Dynamic waiting room estimation for your consultation with Dr. {{ appointment.doctor.user.get_full_name_or_username }}</p>
+        </div>
+        <button type="button" id="btn-refresh-queue" class="btn btn-outline-teal btn-sm shadow-sm">
+          <i class="bi bi-arrow-clockwise me-1"></i> Refresh Status
+        </button>
+      </div>
+
+      <!-- Main Queue Display Card -->
+      <div class="queue-card mb-4 text-center">
+        <span class="badge bg-white text-dark px-3 py-2 rounded-pill fw-bold mb-3 shadow-sm">
+          <i class="bi bi-broadcast me-1 text-danger"></i> LIVE CLINIC QUEUE
+        </span>
+
+        <div class="row align-items-center g-4">
+          <div class="col-md-4">
+            <div class="text-white-50 small fw-semibold text-uppercase">Your Queue Position</div>
+            <div class="queue-number" id="queue-pos-val">{{ queue_info.queue_position }}</div>
+            <div class="small text-white-50">In today's doctor roster</div>
+          </div>
+
+          <div class="col-md-4 border-start-md border-end-md">
+            <div class="text-white-50 small fw-semibold text-uppercase">Patients Ahead</div>
+            <div class="display-5 fw-bold" id="queue-ahead-val">{{ queue_info.patients_ahead }}</div>
+            <div class="small text-white-50">Awaiting or in consultation</div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="text-white-50 small fw-semibold text-uppercase">Estimated Waiting Time</div>
+            <div class="display-5 fw-bold" id="queue-wait-val">~{{ queue_info.estimated_wait_time_minutes }} mins</div>
+            <div class="small text-white-50">Paced at ~{{ queue_info.slot_duration|default:20 }}m / consult</div>
+          </div>
+        </div>
+
+        <hr class="border-white opacity-25 my-4">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center small text-white-50">
+          <div>
+            Current Status: <strong class="text-white" id="queue-status-val">{{ queue_info.current_status }}</strong>
+          </div>
+          <div>
+            <i class="bi bi-clock-history me-1"></i> Last sync: <span id="queue-updated-val" class="text-white">{{ queue_info.last_updated|time:"h:i:s A" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disclaimer & Information Notice -->
+      <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-3 mb-4">
+        <i class="bi bi-info-circle-fill fs-3 text-info"></i>
+        <div class="small">
+          <strong>Important Estimation Notice:</strong> The waiting time displayed is a mathematical projection based on scheduled slot intervals and completed preceding appointments. Actual examination durations may vary depending on clinical complexity and emergency cases.
+        </div>
+      </div>
+
+      <!-- Appointment & Clinic Details Card -->
+      <div class="card card-custom p-4 shadow-sm mb-4">
+        <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Appointment Overview</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <small class="text-muted fw-semibold d-block">Appointment ID</small>
+            <span class="font-monospace fw-bold text-teal" style="color: var(--primary-teal);">{{ appointment.appointment_id }}</span>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted fw-semibold d-block">Scheduled Slot</small>
+            <span class="fw-bold text-dark">{{ appointment.appointment_date|date:"l, M d, Y" }} at {{ appointment.appointment_time|time:"h:i A" }}</span>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted fw-semibold d-block">Doctor</small>
+            <span class="fw-bold text-dark">Dr. {{ appointment.doctor.user.get_full_name_or_username }}</span>
+            <span class="badge badge-teal ms-1">{{ appointment.doctor.specialization }}</span>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted fw-semibold d-block">Clinic / Room</small>
+            <span class="fw-bold text-dark">{{ appointment.doctor.hospital_or_clinic }}</span>
+          </div>
+          <div class="col-12">
+            <small class="text-muted fw-semibold d-block">Visit Reason</small>
+            <span class="text-secondary small">{{ appointment.reason_for_visit }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="{% url 'my_appointments' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i> Back to My Appointments
+        </a>
+        {% if appointment.consultation_record %}
+          <a href="{% url 'prescription_detail' appointment.consultation_record.id %}" class="btn btn-primary-teal btn-sm">
+            <i class="bi bi-receipt me-1"></i> View Issued Prescription
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

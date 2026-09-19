@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Patient Directory - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold mb-1">Clinical Patient Directory</h3>
+      <p class="text-muted small mb-0">Review comprehensive medical charts, vitals telemetry, and history for registered patients</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge badge-teal px-3 py-2 rounded-pill fs-6">
+        <i class="bi bi-people me-1"></i> {{ patients|length }} Patient{{ patients|length|pluralize }} Listed
+      </span>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="card card-custom p-3 mb-4 shadow-sm">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-7">
+        <form method="get" class="d-flex gap-2">
+          <input type="hidden" name="filter" value="{{ filter_type }}">
+          <div class="input-group">
+            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by patient name, username, email, phone, or blood group...">
+          </div>
+          <button type="submit" class="btn btn-primary-teal">Search</button>
+          {% if query %}
+            <a href="{% url 'doctor_patient_list' %}?filter={{ filter_type }}" class="btn btn-outline-secondary">Reset</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <!-- Scope Filter Toggle -->
+      <div class="col-md-5 d-flex justify-content-md-end">
+        <div class="btn-group shadow-sm" role="group">
+          <a href="?filter=all{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if filter_type == 'all' %}btn-primary-teal{% else %}btn-outline-secondary bg-white{% endif %}">
+            <i class="bi bi-globe me-1"></i> All Patients ({{ total_registered_patients }})
+          </a>
+          <a href="?filter=my{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if filter_type == 'my' %}btn-primary-teal{% else %}btn-outline-secondary bg-white{% endif %}">
+            <i class="bi bi-person-check me-1"></i> My Patients ({{ my_patients_count }})
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patients Table -->
+  <div class="card card-custom shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Patient Profile</th>
+            <th>Gender & Age</th>
+            <th>Contact Details</th>
+            <th>Blood Group</th>
+            <th>Latest Vitals</th>
+            <th>Medical History & Alerts</th>
+            <th class="text-end pe-4">Clinical Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in patients %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                {% if p.profile_picture %}
+                  <img src="{{ p.profile_picture.url }}" alt="" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover;">
+                {% else %}
+                <div class="avatar-circle rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; background-color: var(--primary-teal);">
+                  {{ p.first_name|first|default:p.username|first|upper }}
+                </div>
+                {% endif %}
+                <div>
+                  <div class="fw-bold text-dark">{{ p.get_full_name_or_username }}</div>
+                  <small class="text-muted">@{{ p.username }}</small>
+                  {% if p.is_my_patient %}
+                    <span class="badge bg-success-subtle text-success border ms-1" style="font-size: 0.65rem;">My Patient</span>
+                  {% else %}
+                    <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;">Registered</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="text-capitalize">{{ p.gender|default:"Not specified" }}</span>
+              {% if p.date_of_birth %}
+                <br><small class="text-muted">DOB: {{ p.date_of_birth|date:"M d, Y" }}</small>
+              {% endif %}
+            </td>
+            <td>
+              <span class="small text-dark">{{ p.email }}</span>
+              <br><small class="text-muted">{{ p.phone_number|default:"No phone" }}</small>
+            </td>
+            <td>
+              {% if p.blood_group %}
+                <span class="badge bg-light text-danger border fw-bold">{{ p.blood_group }}</span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.latest_vital %}
+                <div>
+                  <span class="fw-semibold text-dark">{{ p.latest_vital.heart_rate|default:"--" }} bpm</span> &bull;
+                  <span class="fw-semibold text-dark">{{ p.latest_vital.systolic_bp|default:"--" }}/{{ p.latest_vital.diastolic_bp|default:"--" }}</span>
+                </div>
+                <small class="text-muted">{{ p.latest_vital.recorded_at|date:"M d, Y" }}</small>
+              {% else %}
+                <span class="text-muted small">No vitals logged yet</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.patient_profile and p.patient_profile.chronic_conditions %}
+                <div class="small fw-semibold text-primary text-truncate d-inline-block" style="max-width: 170px;" title="{{ p.patient_profile.chronic_conditions }}">
+                  <i class="bi bi-heart-pulse me-1"></i>{{ p.patient_profile.chronic_conditions }}
+                </div>
+              {% elif p.patient_profile and p.patient_profile.medical_history %}
+                <div class="small text-dark text-truncate d-inline-block" style="max-width: 170px;" title="{{ p.patient_profile.medical_history }}">
+                  {{ p.patient_profile.medical_history }}
+                </div>
+              {% else %}
+                <span class="text-muted small">No chronic conditions</span>
+              {% endif %}
+              <div class="d-flex gap-1 mt-1">
+                <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">
+                  {{ p.health_records.count }} Vital Log{{ p.health_records.count|pluralize }}
+                </span>
+                {% if p.active_alerts_count > 0 %}
+                  <span class="badge bg-danger" style="font-size: 0.65rem;">{{ p.active_alerts_count }} Alert{{ p.active_alerts_count|pluralize }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="text-end pe-4">
+              {% if p.is_my_patient %}
+                <a href="{% url 'doctor_patient_detail' p.id %}" class="btn btn-outline-teal btn-sm">
+                  <i class="bi bi-folder2-open me-1"></i> Open Medical Chart
+                </a>
+              {% else %}
+                <span class="text-muted small" title="Full chart opens once this patient books or requests an appointment with you.">
+                  <i class="bi bi-lock me-1"></i>No chart access yet
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
+              <h5 class="fw-bold text-dark">No Patients Found</h5>
+              <p class="small mb-0">{% if query %}No patients match "{{ query }}".{% elif filter_type == 'my' %}You have no scheduled appointments with patients yet. Switch to "All Patients" to view all registered clinic patients.{% else %}No registered patients in the system.{% endif %}</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

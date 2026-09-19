@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Today's Clinic Appointments - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold mb-1">{{ title_text|default:"Clinic Schedule & Consultations" }}</h3>
+      <p class="text-muted small mb-0">Today: {{ today|date:"l, F d, Y" }} &bull; Slot: {{ doctor.slot_duration_minutes }}m &bull; Active clinic queue</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <!-- Mode Tabs -->
+      <div class="btn-group shadow-sm" role="group">
+        <a href="?mode=today" class="btn btn-sm {% if mode == 'today' and not date_param %}btn-primary-teal{% else %}btn-outline-secondary bg-white{% endif %}">
+          <i class="bi bi-calendar-day me-1"></i> Today ({{ today_count }})
+        </a>
+        <a href="?mode=upcoming" class="btn btn-sm {% if mode == 'upcoming' %}btn-primary-teal{% else %}btn-outline-secondary bg-white{% endif %}">
+          <i class="bi bi-calendar-week me-1"></i> Upcoming ({{ upcoming_count }})
+        </a>
+        <a href="?mode=all" class="btn btn-sm {% if mode == 'all' %}btn-primary-teal{% else %}btn-outline-secondary bg-white{% endif %}">
+          <i class="bi bi-calendar3 me-1"></i> All ({{ all_count }})
+        </a>
+      </div>
+
+      <!-- Quick Date Filter Form -->
+      <form method="get" class="d-flex gap-1 align-items-center">
+        <input type="date" name="date" value="{{ date_param }}" class="form-control form-control-sm" style="width: 145px;" onchange="this.form.submit();" title="Jump to date">
+        {% if date_param %}
+          <a href="?mode=today" class="btn btn-sm btn-outline-secondary" title="Reset to today"><i class="bi bi-x-circle"></i></a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="card card-custom shadow-sm overflow-hidden mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small">
+          <tr>
+            <th class="ps-4">{% if mode == 'upcoming' or mode == 'all' or date_param %}Date & Time{% else %}Slot Time{% endif %}</th>
+            <th>Queue #</th>
+            <th>Patient Details</th>
+            <th>Reason for Consultation</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Clinic Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for apt in appointments %}
+          <tr class="{% if apt.status == 'in_progress' %}table-primary-subtle{% endif %}">
+            <td class="ps-4 text-nowrap">
+              {% if mode == 'upcoming' or mode == 'all' or date_param %}
+                <span class="fw-bold text-dark fs-6">{{ apt.appointment_date|date:"M d, Y" }}</span><br>
+                <span class="text-primary fw-semibold">{{ apt.appointment_time|time:"h:i A" }}</span>
+              {% else %}
+                <span class="fw-bold text-dark fs-6">{{ apt.appointment_time|time:"h:i A" }}</span>
+              {% endif %}
+              <br><small class="text-muted font-monospace">{{ apt.appointment_id }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border fw-bold fs-6">#{{ forloop.counter }}</span>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ apt.patient.get_full_name_or_username }}</div>
+              <small class="text-muted">{{ apt.patient.phone_number|default:"No phone" }} &bull; {{ apt.patient.gender|default:"-"|title }}</small>
+            </td>
+            <td>
+              <span class="small text-secondary text-truncate d-inline-block" style="max-width: 220px;" title="{{ apt.reason_for_visit }}">
+                {{ apt.reason_for_visit }}
+              </span>
+              {% if apt.notes %}
+                <br><small class="text-muted text-truncate d-inline-block" style="max-width: 200px;">{{ apt.notes }}</small>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-{{ apt.get_status_badge_class }}">
+                {{ apt.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group btn-group-sm">
+                {% if apt.status == 'approved' %}
+                  <form action="{% url 'doctor_appointment_action' apt.id %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="in_progress">
+                    <button type="submit" class="btn btn-outline-primary" title="Call patient into consultation room">
+                      <i class="bi bi-person-walking me-1"></i> Call In
+                    </button>
+                  </form>
+                  <a href="{% url 'doctor_consultation' apt.id %}" class="btn btn-primary-teal">
+                    <i class="bi bi-stethoscope me-1"></i> Consult
+                  </a>
+                {% elif apt.status == 'in_progress' %}
+                  <a href="{% url 'doctor_consultation' apt.id %}" class="btn btn-warning fw-semibold">
+                    <i class="bi bi-pencil-square me-1"></i> Write Prescription
+                  </a>
+                {% elif apt.status == 'completed' %}
+                  {% if apt.consultation_record %}
+                    <a href="{% url 'prescription_detail' apt.consultation_record.id %}" class="btn btn-outline-success">
+                      <i class="bi bi-receipt me-1"></i> View Record
+                    </a>
+                  {% endif %}
+                {% endif %}
+
+                <a href="{% url 'doctor_patient_detail' apt.patient.id %}" class="btn btn-light border" title="Patient Full History">
+                  <i class="bi bi-folder2-open"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-calendar2-check fs-1 d-block mb-2 text-secondary"></i>
+              <h5 class="fw-bold text-dark">
+                {% if mode == 'today' %}
+                  No Consultations Scheduled For Today
+                {% elif mode == 'upcoming' %}
+                  No Upcoming Approved Consultations
+                {% else %}
+                  No Appointments Found
+                {% endif %}
+              </h5>
+              <p class="small">
+                {% if mode == 'today' and upcoming_count > 0 %}
+                  You have <strong>{{ upcoming_count }}</strong> upcoming approved consultation{{ upcoming_count|pluralize }}.
+                  <br><a href="?mode=upcoming" class="btn btn-outline-teal btn-sm mt-2">View Upcoming Schedule ({{ upcoming_count }}) &rarr;</a>
+                {% else %}
+                  Pending requests can be approved from the Appointment Requests tab.
+                  <br><a href="{% url 'doctor_appointment_requests' %}" class="btn btn-outline-teal btn-sm mt-2">View Pending Requests</a>
+                {% endif %}
+              </p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

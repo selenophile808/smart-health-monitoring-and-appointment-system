@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Medical Prescription - {{ record.patient.get_full_name_or_username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+      <a href="{% if user.is_patient %}{% url 'medical_records' %}{% else %}{% url 'doctor_today_appointments' %}{% endif %}" class="btn btn-sm btn-light border">
+        <i class="bi bi-arrow-left me-1"></i> Back
+      </a>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" onclick="window.print()" class="btn btn-primary-teal btn-sm shadow-sm">
+        <i class="bi bi-printer me-1"></i> Print / Save as PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Printable Prescription Sheet -->
+  <div class="prescription-sheet">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+      <div>
+        <h3 class="fw-bold text-teal mb-0" style="color: var(--primary-teal);">
+          <i class="bi bi-heart-pulse-fill me-2"></i>{{ record.doctor.hospital_or_clinic }}
+        </h3>
+        <p class="text-muted small mb-0">{{ record.doctor.user.address|default:"Department of Specialized Medicine" }}</p>
+        <p class="text-muted small mb-0">Phone: {{ record.doctor.user.phone_number|default:"+1 800 555-HEALTH" }}</p>
+      </div>
+
+      <div class="text-end">
+        <h5 class="fw-bold mb-0 text-dark">Dr. {{ record.doctor.user.get_full_name_or_username }}</h5>
+        <div class="text-teal small fw-semibold" style="color: var(--primary-teal);">{{ record.doctor.specialization }}</div>
+        <small class="text-muted">{{ record.doctor.qualification }} &bull; Reg: DOC-{{ record.doctor.id }}026</small>
+      </div>
+    </div>
+
+    <!-- Patient Meta Bar -->
+    <div class="p-3 bg-light rounded-3 border mb-4">
+      <div class="row g-2 small">
+        <div class="col-sm-4">
+          <strong class="text-muted">Patient Name:</strong>
+          <span class="text-dark fw-bold">{{ record.patient.get_full_name_or_username }}</span>
+        </div>
+        <div class="col-sm-4">
+          <strong class="text-muted">Gender / Blood:</strong>
+          <span class="text-dark text-capitalize">{{ record.patient.gender|default:"Not specified" }} / {{ record.patient.blood_group|default:"-" }}</span>
+        </div>
+        <div class="col-sm-4">
+          <strong class="text-muted">Date of Visit:</strong>
+          <span class="text-dark fw-bold">{{ record.visit_date|date:"F d, Y" }}</span>
+        </div>
+        <div class="col-sm-4">
+          <strong class="text-muted">Appointment Ref:</strong>
+          <span class="font-monospace text-teal" style="color: var(--primary-teal);">{{ record.appointment.appointment_id }}</span>
+        </div>
+        <div class="col-sm-4">
+          <strong class="text-muted">DOB:</strong>
+          <span class="text-dark">{{ record.patient.date_of_birth|default:"-" }}</span>
+        </div>
+        <div class="col-sm-4">
+          <strong class="text-muted">Phone:</strong>
+          <span class="text-dark">{{ record.patient.phone_number|default:"-" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clinical Diagnosis -->
+    <div class="mb-4">
+      <h6 class="fw-bold text-dark border-bottom pb-1 mb-2">Clinical Diagnosis & Findings</h6>
+      <p class="mb-0 text-dark fw-semibold">{{ record.diagnosis }}</p>
+      {% if record.symptoms_observed %}
+        <small class="text-muted d-block mt-1"><strong>Symptoms Reported:</strong> {{ record.symptoms_observed }}</small>
+      {% endif %}
+    </div>
+
+    <!-- Rx Prescriptions -->
+    <div class="mb-4">
+      <div class="d-flex align-items-center gap-2 mb-2 border-bottom pb-1">
+        <span class="fs-4 fw-bold text-teal" style="color: var(--primary-teal); font-family: serif;">℞</span>
+        <h6 class="fw-bold text-dark mb-0">Medications Prescribed</h6>
+      </div>
+
+      <div class="p-3 bg-light rounded-3 border">
+        {% if prescription_lines %}
+          <ol class="mb-0 ps-3">
+            {% for item in prescription_lines %}
+              <li class="mb-2 fw-medium text-dark font-monospace small" style="white-space: pre-line;">{{ item }}</li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="text-muted small mb-0">No specific prescription medications noted.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Diagnostic Tests Recommended -->
+    {% if record.recommended_tests %}
+    <div class="mb-4">
+      <h6 class="fw-bold text-dark border-bottom pb-1 mb-2">Recommended Investigations & Laboratory Tests</h6>
+      <p class="text-dark small mb-0">{{ record.recommended_tests }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Clinical Advice / Doctor Notes -->
+    <div class="mb-4">
+      <h6 class="fw-bold text-dark border-bottom pb-1 mb-2">Clinical Advice & Precautions</h6>
+      <p class="text-secondary small mb-0" style="white-space: pre-line;">
+        {{ record.clinical_notes }}
+      </p>
+    </div>
+
+    <!-- AI Plain-Language Explanation -->
+    <div class="mb-4">
+      <button type="button" id="shmasExplainBtn" class="btn btn-sm btn-outline-teal" style="border-color: var(--primary-teal); color: var(--primary-teal);" data-record-id="{{ record.id }}">
+        <i class="bi bi-stars me-1"></i>Explain in simple terms
+      </button>
+      <div id="shmasExplainBox" class="d-none mt-2 p-3 rounded-3 border" style="background: #F0FDFA;">
+        <div class="fw-bold small text-dark mb-1"><i class="bi bi-stars me-1" style="color: var(--primary-teal);"></i>In simple terms</div>
+        <p class="small text-secondary mb-0" id="shmasExplainText"></p>
+      </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const btn = document.getElementById('shmasExplainBtn');
+      if (!btn) return;
+      btn.addEventListener('click', async function () {
+        const box = document.getElementById('shmasExplainBox');
+        const textEl = document.getElementById('shmasExplainText');
+        box.classList.remove('d-none');
+        textEl.textContent = 'Thinking...';
+        btn.disabled = true;
+        try {
+          function getCookie(name) {
+            const v = `; ${document.cookie}`;
+            const parts = v.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+          }
+          const resp = await fetch(`/appointments/medical-records/${btn.dataset.recordId}/explain/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          });
+          const data = await resp.json();
+          textEl.textContent = data.explanation || "Sorry, couldn't generate an explanation right now.";
+        } catch (e) {
+          textEl.textContent = 'Connection issue -- please try again.';
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+    </script>
+
+    <!-- Follow-up & Doctor Signature -->
+    <div class="row pt-4 mt-4 border-top align-items-end">
+      <div class="col-sm-6">
+        {% if record.follow_up_date %}
+          <div class="p-2 bg-light rounded border d-inline-block small">
+            <i class="bi bi-calendar-check text-primary me-1"></i>
+            <strong>Follow-Up Consultation:</strong> {{ record.follow_up_date|date:"F d, Y" }}
+          </div>
+        {% else %}
+          <span class="small text-muted">Follow-up as needed if symptoms persist or worsen.</span>
+        {% endif %}
+      </div>
+
+      <div class="col-sm-6 text-end">
+        <div class="d-inline-block text-center" style="min-width: 180px;">
+          <div class="text-teal font-monospace mb-1" style="color: var(--primary-teal); font-style: italic;">
+            Dr. {{ record.doctor.user.get_full_name_or_username }}
+          </div>
+          <div class="border-top pt-1 text-muted small">
+            Attending Physician Signature
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

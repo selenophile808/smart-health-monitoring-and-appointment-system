@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Book Appointment - Smart Health System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold mb-1">Book a Specialist Appointment</h3>
+          <p class="text-muted small mb-0">Select your healthcare provider, date, and preferred consultation time slot</p>
+        </div>
+      </div>
+
+      {% if assessment %}
+      <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-3 mb-4">
+        <i class="bi bi-stars fs-3 text-primary"></i>
+        <div>
+          <div class="fw-bold">Connected AI Triage Assessment #{{ assessment.id }}</div>
+          <small class="text-secondary">
+            Recommended Specialization: <strong>{{ assessment.recommended_specialization }}</strong> &bull;
+            Reported Symptoms: {{ assessment.symptoms|truncatechars:80 }}
+          </small>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="card card-custom p-4 p-md-5 shadow-sm">
+            <form method="post" id="appointmentBookingForm" novalidate>
+              {% csrf_token %}
+
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 small">
+                  {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+                </div>
+              {% endif %}
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold small text-muted">Select Healthcare Provider *</label>
+                {{ form.doctor }}
+                {% if form.doctor.errors %}<div class="text-danger small">{{ form.doctor.errors.0 }}</div>{% endif %}
+              </div>
+
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small text-muted">Consultation Date *</label>
+                  {{ form.appointment_date }}
+                  {% if form.appointment_date.errors %}<div class="text-danger small">{{ form.appointment_date.errors.0 }}</div>{% endif %}
+                  <div class="form-text small">Select today or a future date on doctor's scheduled days.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small text-muted">Appointment Time (24h) *</label>
+                  {{ form.appointment_time }}
+                  {% if form.appointment_time.errors %}<div class="text-danger small">{{ form.appointment_time.errors.0 }}</div>{% endif %}
+                  <div class="form-text small">Select from available slots below or enter time.</div>
+                </div>
+              </div>
+
+              <!-- Available Time Slots Generated Dynamically -->
+              <div class="mb-4 p-3 bg-light rounded-3 border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="small fw-bold text-dark"><i class="bi bi-clock me-1 text-teal" style="color: var(--primary-teal);"></i> Available Clinic Time Slots</span>
+                  <span id="slots-loading" class="small text-muted" style="display: none;">
+                    <span class="spinner-border spinner-border-sm me-1"></span> Loading slots...
+                  </span>
+                </div>
+
+                <div id="slots-message" class="text-muted small mb-2">
+                  Please choose both a doctor and date to view available appointment slots.
+                </div>
+
+                <div id="slots-container" class="d-flex flex-wrap gap-2">
+                  <!-- Injected via static/js/main.js initAppointmentSlots() -->
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold small text-muted">Primary Reason for Visit *</label>
+                {{ form.reason_for_visit }}
+                {% if form.reason_for_visit.errors %}<div class="text-danger small">{{ form.reason_for_visit.errors.0 }}</div>{% endif %}
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold small text-muted">Additional Medical Notes / Inquiries (Optional)</label>
+                {{ form.notes }}
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                <a href="{% url 'doctor_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary-teal px-4 py-2 fw-semibold">
+                  <i class="bi bi-check2-circle me-1"></i> Confirm Booking Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card card-custom p-4 bg-light border shadow-sm">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Booking Guidelines</h6>
+            <ul class="list-unstyled small text-muted mb-4">
+              <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Real-time availability:</strong> Slot times are dynamically generated to prevent double-booking.</li>
+              <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Queue Allocation:</strong> Once accepted, you receive an estimated queue position and waiting time.</li>
+              <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Instant Confirmation:</strong> You will be notified as soon as the doctor approves your requested slot.</li>
+            </ul>
+
+            <div class="p-3 bg-white rounded border">
+              <div class="fw-semibold small text-dark mb-1">Need Urgent Care?</div>
+              <p class="small text-muted mb-2">If symptoms are critical, please visit the emergency room directly rather than booking regular clinic appointments.</p>
+              <a href="tel:911" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-telephone me-1"></i> Call Emergency (911)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
