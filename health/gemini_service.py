@@ -109,6 +109,26 @@ Respond ONLY with a valid JSON object strictly formatted as:
     return rule_based_symptom_triage(symptoms_text, duration, severity, additional_info)
 
 
+_TANGLISH_WORDS = {
+    'enna', 'eppadi', 'epdi', 'irukku', 'irukkum', 'iruku', 'panna', 'pannanum', 'pannalam',
+    'pannu', 'pannunga', 'panren', 'solu', 'sollu', 'solunga', 'venum', 'venam', 'vandha',
+    'vali', 'kudu', 'kudunga', 'paaru', 'paarunga', 'irundha', 'irundhaa', 'edhu', 'enga',
+    'naal', 'romba', 'konjam', 'illa', 'illai', 'nalla', 'udambu', 'thanni', 'saapda',
+    'saapdanum', 'vayiru', 'thalai', 'sali', 'irumal', 'kaichal', 'jwaram', 'mookku',
+    'enakku', 'unga', 'naan', 'nee', 'ennoda', 'eppo', 'aagum', 'aaguthu', 'seri', 'sari',
+    'podu', 'poda', 'vaanga', 'ketu', 'kelu', 'theriyum', 'theriyala', 'puriyala', 'vandhuchu',
+}
+
+
+def _looks_tanglish(message):
+    """True if the message is Tanglish (Tamil written in English letters) or Tamil script."""
+    import re
+    if re.search(r'[\u0B80-\u0BFF]', message or ''):
+        return True
+    words = set(re.findall(r"[a-z]+", (message or '').lower()))
+    return bool(words & _TANGLISH_WORDS)
+
+
 def chat_with_assistant(message, role='patient'):
     """
     Powers the site-wide AI Assistant chat widget. Answers general health
@@ -133,22 +153,29 @@ def chat_with_assistant(message, role='patient'):
                     continue
 
             if model:
+                reply_language = 'Tanglish' if _looks_tanglish(message) else 'English'
                 prompt = f"""
 You are "SmartHealth Assistant", a friendly helper chatbot embedded inside a
 hospital management website called SmartHealth in India. The person chatting
-with you is logged in as a {role}. Many patients here are more comfortable in
-Tanglish (a natural mix of Tamil and English, written in English/Latin
-script) than pure English -- respond in warm, natural Tanglish, similar to
-how a friendly local hospital receptionist would speak. If the user's own
-message is in plain English, you may still reply in simple Tanglish unless
-they clearly seem to prefer English.
+with you is logged in as a {role}. LANGUAGE RULE: reply in the same language
+style the user wrote in. The user's message is detected as {reply_language}.
+If it is English, reply in simple, clear English only (no Tamil words). If it
+is Tanglish (Tamil written in English letters), reply in warm, natural
+Tanglish like a friendly local hospital receptionist.
 
 You have two jobs:
-1. Answer general health/wellness questions in simple, safe, non-diagnostic
-   language (you are NOT a doctor and must never give a definitive diagnosis
-   or prescribe medication -- for anything specific to their own symptoms,
-   direct them to use the site's "AI Symptom Assessment" feature or book an
-   appointment with a doctor).
+1. Answer general health/wellness questions DIRECTLY and helpfully in simple,
+   safe language. When someone asks about home remedies or self-care for a
+   common, mild problem (fever, cold, cough, headache, acidity, body pain,
+   stomach upset, sore throat, etc.), actually give 3 to 4 practical tips
+   (rest, fluids, warm water, light food, steam, etc.) -- do NOT just tell
+   them to use the symptom checker or book a doctor. If the person says they
+   don't know the cause or what to do, still give the general care tips first.
+   Never give a definitive diagnosis and never name medicines or doses. After
+   the tips, add ONE short line on when to see a doctor (for example fever
+   lasting more than 2 to 3 days, very high fever, breathing trouble, or
+   symptoms getting worse), and you may mention the site's "AI Symptom
+   Assessment" or "Book Appointment" as an extra option, not as the whole answer.
 2. Help the person navigate the website. Here is the site map you can refer
    them to by name:
    - Patients: Patient Dashboard, Log Health Vitals, Health History, Health
@@ -161,18 +188,18 @@ You have two jobs:
    - Admins: Admin Dashboard, Patient Management, Doctor Management,
      Appointment Management, Health Records, Analytics & Reports.
 
-Keep replies SHORT -- 1 to 3 short sentences maximum, warm, and practical.
-Brevity matters more than completeness here. If a question is a medical
+Keep replies short and easy to read -- at most 4 to 5 short sentences, warm and
+practical. If a question is a medical
 emergency (e.g. chest pain, difficulty breathing, stroke symptoms), tell them
 to seek emergency care immediately instead of chatting further.
 
 User's message: {message}
 
-Reply with plain text only (no markdown headers, no JSON), in Tanglish.
+Reply with plain text only (no markdown headers, no JSON), in {reply_language}.
 """
                 response = model.generate_content(
                     prompt,
-                    generation_config={'max_output_tokens': 150, 'temperature': 0.7}
+                    generation_config={'max_output_tokens': 350, 'temperature': 0.7}
                 )
                 reply_text = response.text.strip()
                 return {'success': True, 'source': 'Gemini AI', 'reply': reply_text}
@@ -186,6 +213,29 @@ Reply with plain text only (no markdown headers, no JSON), in Tanglish.
 def _chatbot_fallback(message, role='patient'):
     """Simple keyword-matched navigation/help guide used when no Gemini key is set."""
     m = message.lower()
+
+    if not _looks_tanglish(message):
+        return _chatbot_fallback_english(m)
+
+    remedies = [
+        (['fever', 'kaichal', 'jwaram', 'temperature'],
+         "Fever irundha nalla rest edunga, niraya thanni / ORS / kanji kudunga, light-a saapdunga, thin cotton dress podunga. Neththila eera thuni vachchu, udambu thudachu vidalam. Fever 2-3 naal-ku mela irundha, romba adhigama irundha, illa breathing problem irundha doctor-a paarunga."),
+        (['cold', 'sali', 'runny nose', 'sneez'],
+         "Sali irundha vennir niraya kudunga, steam pidinga, uppu thanni-la gargle pannunga, nalla rest edunga. 5-7 naal-ku mela irundha illa fever sethu irundha doctor-a paarunga."),
+        (['cough', 'irumal', 'sore throat', 'throat'],
+         "Irumal / throat pain-ku sudu thanni, uppu thanni gargle, thaen-la konjam inji sethu saapdalam (1 vayasu-ku keezha kuzhandhaiku thaen venaam). Thanni niraya kudunga, thoosi / pugai thavirunga. 1 vaaram-ku mela irundha doctor-a paarunga."),
+        (['headache', 'thalai vali', 'head pain', 'migraine'],
+         "Thalai vali-ku amaidhiyana, irutta idathula rest edunga, niraya thanni kudunga, neram-ku saapdunga, nenjukku mela screen paakama irukunga. Romba severe-a irundha illa thirumba thirumba vandha doctor-a paarunga."),
+        (['acidity', 'gas', 'stomach', 'vayiru', 'indigestion', 'vomit', 'diarrh'],
+         "Vayiru prachanai-ku spicy / oily food thavirunga, konjam konjam-a thanni / ORS kudunga, light-a kanji / curd rice saapdunga. Thirumba thirumba vomit, rathathoda motion, illa romba weakness irundha udane doctor-a paarunga."),
+        (['body pain', 'udambu vali', 'back pain', 'muscle', 'joint'],
+         "Udambu vali-ku nalla rest edunga, sudu thanni othadam kodunga, light-a stretch pannunga, niraya thanni kudunga. Vali romba adhigama irundha illa neenda naal irundha doctor-a paarunga."),
+    ]
+    wants_nav = any(k in m for k in ['book', 'appointment'])
+    if not wants_nav:
+        for keywords, reply in remedies:
+            if any(k in m for k in keywords):
+                return {'success': True, 'source': 'Guide (no AI key set)', 'reply': reply}
 
     nav_map = [
         (['book', 'appointment'], "Appointment book pannanumna: sidebar-la \"Search Doctors\" pogu, doctor-a select pannu, appuram date and available time slot select pannu."),
@@ -214,6 +264,64 @@ def _chatbot_fallback(message, role='patient'):
             "illana doctor book pannu."
         )
     }
+
+
+def _chatbot_fallback_english(m):
+    """English version of the keyword fallback guide (used when no AI reply is available)."""
+    remedies = [
+        (['fever', 'temperature'],
+         "For a fever, rest well, drink plenty of water, ORS or coconut water, eat light food like porridge, and wear thin cotton clothes. A damp cloth on the forehead can help. See a doctor if the fever lasts more than 2-3 days, is very high, or you have trouble breathing."),
+        (['cold', 'runny nose', 'sneez', 'blocked nose'],
+         "For a cold, drink warm fluids, inhale steam, gargle with warm salt water and rest well. See a doctor if it lasts more than 5-7 days or you get a fever."),
+        (['cough', 'sore throat', 'throat'],
+         "For a cough or sore throat, sip warm water, gargle with warm salt water and avoid dust and smoke. Honey with ginger can soothe the throat (not for children under 1 year). See a doctor if it lasts more than a week."),
+        (['headache', 'migraine', 'head pain'],
+         "For a headache, rest in a quiet, dark room, drink plenty of water, eat on time and limit screen use. See a doctor if it is severe or keeps coming back."),
+        (['acidity', 'gas', 'stomach', 'indigestion', 'vomit', 'diarrh'],
+         "For stomach trouble, avoid spicy and oily food, sip water or ORS in small amounts and eat light food like curd rice. See a doctor quickly if vomiting keeps repeating, there is blood in the stool, or you feel very weak."),
+        (['body pain', 'back pain', 'muscle', 'joint', 'hand', 'leg pain'],
+         "For body or muscle pain, rest, apply a warm compress, do gentle stretching and drink enough water. See a doctor if the pain is severe or lasts many days."),
+        (['dehydrat'],
+         "Dehydration can cause thirst, dry mouth, dizziness, tiredness and dark urine. Drink water, ORS or coconut water in small sips. If you feel very dizzy or cannot keep fluids down, see a doctor."),
+        (['diabet', 'sugar'],
+         "For people with diabetes, choose whole grains, vegetables and protein, and cut down on sweets, sugary drinks and white rice portions. Check your sugar regularly and follow your doctor's advice."),
+        (['weight', 'lose weight'],
+         "To lose weight safely, eat balanced home-cooked meals, avoid sugary and fried food, walk or exercise daily and sleep well. A doctor can give a plan that suits you."),
+        (['stress', 'anxiety'],
+         "To reduce stress, try deep breathing, a short daily walk, enough sleep and talking to someone you trust. If it feels overwhelming, please talk to a doctor or counsellor."),
+        (['chest pain', 'breathing', 'breathless', 'unconscious', 'stroke'],
+         "This could be serious. Please get emergency medical help right now or go to the nearest hospital. Do not wait."),
+    ]
+    wants_nav = any(k in m for k in ['book', 'appointment'])
+    if not wants_nav:
+        for keywords, reply in remedies:
+            if any(k in m for k in keywords):
+                return {'success': True, 'source': 'Guide (no AI key set)', 'reply': reply}
+
+    nav_map = [
+        (['book', 'appointment'], "To book an appointment: open Doctors Directory, pick a doctor, then choose a date and an available time slot and confirm."),
+        (['queue', 'wait'], "You can see your live queue position and estimated wait in My Appointments."),
+        (['symptom', 'checker', 'diagnos'], "Use AI Symptom Assessment from the sidebar for a preliminary check. It is not a diagnosis, so please follow up with a doctor."),
+        (['prescription', 'medicine', 'medical record'], "Your prescriptions and consultation history are in Medical Records in the sidebar."),
+        (['doctor', 'specialist', 'specialization'], "Use Doctors Directory to browse and filter doctors by specialization."),
+        (['trend', 'vitals', 'blood pressure', 'heart rate'], "Log your vitals in Log Health Vitals, and see your trends in Health Trend Analysis."),
+        (['alert'], "Abnormal vitals automatically appear in Health Alerts."),
+        (['notification'], "Your notifications (bookings, approvals, alerts) are under the bell icon or the Notifications page."),
+        (['sos', 'emergency'], "The red Emergency SOS button on your dashboard sends an alert to doctors and admins. For a real emergency, please also call your local emergency number."),
+        (['profile', 'password', 'account'], "You can update your details in Account Settings: click your name at the top right."),
+    ]
+    for keywords, reply in nav_map:
+        if any(k in m for k in keywords):
+            return {'success': True, 'source': 'Guide (no AI key set)', 'reply': reply}
+
+    return {
+        'success': True,
+        'source': 'Guide (no AI key set)',
+        'reply': "I can help with general health questions and with using this site. Try asking about a fever, headache or cold, or how to book an appointment. For your own symptoms, please use AI Symptom Assessment or book a doctor."
+    }
+
+
+def rule_based_symptom_triage(symptoms_text, duration, severity, additional_info=""):
     """
     Intelligent deterministic clinical triage engine that classifies symptoms
     into appropriate medical specialties and urgency categories.

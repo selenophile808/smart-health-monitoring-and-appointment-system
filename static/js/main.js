@@ -4,11 +4,14 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 0. Pop-up messages (login, register, status...) fade away on their own
+    initToastAutoHide();
+
     // 1. Auto-dismiss Bootstrap alert messages after 6 seconds
     const alerts = document.querySelectorAll('.alert-dismissible');
     alerts.forEach(alert => {
         setTimeout(() => {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+            const bsAlert = (typeof bootstrap !== 'undefined') ? bootstrap.Alert.getOrCreateInstance(alert) : null;
             if (bsAlert) {
                 bsAlert.close();
             }
@@ -280,6 +283,17 @@ function initQueueTracker() {
  * brief "Please wait..." state after the first click. A safety-net
  * timeout re-enables it in case the request never completes (e.g. a
  * dropped connection), so a genuine retry is always possible.
+ *
+ * IMPORTANT: the disabling is deferred by one tick (setTimeout ..., 0).
+ * Forms with multiple submit buttons (e.g. Available / Busy / Offline,
+ * each with a different name="status" value) rely on the browser
+ * including the CLICKED button's name/value pair in the submitted data.
+ * A disabled submit button is excluded from that data entirely -- so
+ * disabling it synchronously inside the 'submit' handler (before the
+ * browser has read the form data) would silently drop the very value
+ * the click was supposed to send. Deferring by one tick lets the
+ * browser capture the submission first, then disables the buttons to
+ * block any further rapid clicks.
  */
 function initDoubleSubmitProtection() {
     document.querySelectorAll('form').forEach(form => {
@@ -295,13 +309,16 @@ function initDoubleSubmitProtection() {
 
             form.dataset.submitted = 'true';
             const submitControls = form.querySelectorAll('button[type="submit"], input[type="submit"]');
-            submitControls.forEach(btn => {
-                btn.disabled = true;
-                if (btn.tagName === 'BUTTON' && !btn.dataset.originalHtml) {
-                    btn.dataset.originalHtml = btn.innerHTML;
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Please wait...';
-                }
-            });
+
+            setTimeout(() => {
+                submitControls.forEach(btn => {
+                    btn.disabled = true;
+                    if (btn.tagName === 'BUTTON' && !btn.dataset.originalHtml) {
+                        btn.dataset.originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Please wait...';
+                    }
+                });
+            }, 0);
 
             setTimeout(() => {
                 form.dataset.submitted = 'false';
@@ -381,4 +398,23 @@ function initScrollFadeIn() {
     }, { threshold: 0.15 });
 
     sections.forEach(s => observer.observe(s));
+}
+
+
+/**
+ * 0. Pop-up (toast) messages such as "Welcome back" or "Your status is now
+ * set to Busy" disappear by themselves after a few seconds. Error messages
+ * stay a little longer so they can be read. The close (x) button still works.
+ */
+function initToastAutoHide() {
+    document.querySelectorAll('.toast-container .toast').forEach(toast => {
+        const isError = toast.classList.contains('text-bg-danger') || toast.classList.contains('text-bg-error');
+        const delay = isError ? 7000 : 4000;
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(20px)';
+            setTimeout(() => toast.remove(), 500);
+        }, delay);
+    });
 }

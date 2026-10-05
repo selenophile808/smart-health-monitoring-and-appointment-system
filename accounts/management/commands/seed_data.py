@@ -1,7 +1,9 @@
 from datetime import date, timedelta, time
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from accounts.models import User, PatientProfile, DoctorProfile
+from accounts.utils import generate_avatar
 from health.models import HealthRecord, HealthAlert, SymptomAssessment
 from appointments.models import Appointment, ConsultationRecord, Notification
 
@@ -97,6 +99,11 @@ class Command(BaseCommand):
             if created:
                 doc_user.set_password('doctor123')
                 doc_user.save()
+                doc_user.profile_picture.save(
+                    f"{doc_user.username}.jpg",
+                    generate_avatar(f"{d_info['first_name']} {d_info['last_name']}"),
+                    save=True
+                )
 
             doc_profile, p_created = DoctorProfile.objects.get_or_create(
                 user=doc_user,
@@ -136,6 +143,11 @@ class Command(BaseCommand):
         if p1_created:
             patient1_user.set_password('patient123')
             patient1_user.save()
+            patient1_user.profile_picture.save(
+                f"{patient1_user.username}.jpg",
+                generate_avatar('John Doe'),
+                save=True
+            )
             PatientProfile.objects.create(
                 user=patient1_user,
                 emergency_contact_name='Mary Doe',
@@ -164,6 +176,11 @@ class Command(BaseCommand):
         if p2_created:
             patient2_user.set_password('patient123')
             patient2_user.save()
+            patient2_user.profile_picture.save(
+                f"{patient2_user.username}.jpg",
+                generate_avatar('Jane Smith'),
+                save=True
+            )
             PatientProfile.objects.create(
                 user=patient2_user,
                 emergency_contact_name='David Smith',
@@ -286,10 +303,13 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Created active today appointments for live queue testing."))
 
+        call_command('seed_doctors')
+
         self.stdout.write(self.style.SUCCESS("=== SEEDING COMPLETE! ==="))
         self.stdout.write("Credentials:")
         self.stdout.write(" - Admin: admin / admin123")
         self.stdout.write(" - Doctor (Cardiology): dr_sarah / doctor123")
         self.stdout.write(" - Doctor (General Med): dr_chen / doctor123")
+        self.stdout.write(" - 10 more doctors (all other specializations): dr_arun, dr_priya, dr_karthik, dr_lakshmi, dr_vikram, dr_anita, dr_rahul, dr_divya, dr_suresh, dr_kavya / doctor123")
         self.stdout.write(" - Patient 1 (has vitals & queue): patient1 / patient123")
         self.stdout.write(" - Patient 2: patient2 / patient123")

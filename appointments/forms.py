@@ -41,6 +41,11 @@ class AppointmentBookingForm(forms.ModelForm):
             is_available=True,
             is_approved_by_admin=True
         ).select_related('user')
+        # Show each doctor's live status (Available / Busy / Offline) in the dropdown,
+        # so the patient can see it before booking.
+        self.fields['doctor'].label_from_instance = (
+            lambda doc: f"{doc} - {doc.get_current_status_display()}"
+        )
 
     def clean_appointment_date(self):
         appt_date = self.cleaned_data.get('appointment_date')
